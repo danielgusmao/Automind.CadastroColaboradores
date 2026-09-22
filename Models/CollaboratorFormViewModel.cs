@@ -1,14 +1,24 @@
+using Automind.CadastroColaboradores.Helpers;
+
 namespace Automind.CadastroColaboradores.Models;
 
 public sealed class CollaboratorFormViewModel
 {
+    private string? _telefoneCelular;
+
     public string? Chamado { get; set; }
     public string Fonte { get; set; } = "Manual";
     public string NomeCompleto { get; set; } = string.Empty;
     public string NomeGuerra { get; set; } = string.Empty;
     public string Login { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
-    public string? TelefoneCelular { get; set; }
+
+    public string? TelefoneCelular
+    {
+        get => _telefoneCelular;
+        set => _telefoneCelular = TelefoneFormatter.FormatarCelular(value);
+    }
+
     public bool DivulgarContato { get; set; }
     public string? LocalTrabalho { get; set; }
     public string? SuperiorImediato { get; set; }

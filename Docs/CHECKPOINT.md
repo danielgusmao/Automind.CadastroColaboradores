@@ -25,3 +25,10 @@ Starter MVC .NET 10 criado para testes locais.
 
 ## Próximo passo recomendado
 Validar o projeto localmente e aprovar o fluxo/telas. Depois implementar autenticação e leitura real do AD, mantendo escrita bloqueada.
+
+## Ajuste aprovado - telefone celular
+- padrão obrigatório de exibição: `(DD) 9 XXXX-XXXX`;
+- exemplo aprovado: `(71) 9 8169-6721`;
+- telefone com 10 dígitos recebe automaticamente o nono dígito após o DDD;
+- código de país `55`, quando presente, é removido para a apresentação interna;
+- máscara aplicada no formulário e normalização aplicada no ViewModel.

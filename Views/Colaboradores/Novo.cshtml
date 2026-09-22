@@ -58,7 +58,16 @@
                 <div class="field"><label>E-mail corporativo</label><input value="@Model.Email" /></div>
             </div>
             <div class="form-row-2">
-                <div class="field"><label>Telefone celular</label><input value="@Model.TelefoneCelular" /></div>
+                <div class="field">
+                    <label>Telefone celular <small>formato: (71) 9 8169-6721</small></label>
+                    <input name="TelefoneCelular"
+                           value="@Model.TelefoneCelular"
+                           data-phone-br
+                           inputmode="numeric"
+                           autocomplete="tel"
+                           maxlength="16"
+                           placeholder="(71) 9 8169-6721" />
+                </div>
                 <div class="field"><label>Local de trabalho</label><input value="@Model.LocalTrabalho" /></div>
             </div>
             <label class="toggle-line">

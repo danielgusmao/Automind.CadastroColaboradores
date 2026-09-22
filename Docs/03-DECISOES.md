@@ -20,3 +20,4 @@
 18. Antes de atribuir licença M365, o sistema deverá consultar SKUs existentes, usados e disponíveis.
 19. Área administrativa fará parte do sistema.
 20. Identidade visual deve usar cores e logo Automind.
+21. Telefone celular deve ser sempre apresentado no formato `(DD) 9 XXXX-XXXX`, por exemplo `(71) 9 8169-6721`. Se a origem trouxer 10 dígitos (DDD + 8 dígitos), por se tratar de campo exclusivamente celular, o sistema acrescentará o nono dígito após o DDD. Se vier com código do país `55`, ele será removido para apresentação interna.
