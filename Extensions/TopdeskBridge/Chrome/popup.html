@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Automind TOPdesk Bridge</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --pink: #d9005b;
+      --wine: #5a075c;
+      --purple: #22006b;
+      --ink: #1c1720;
+      --muted: #6b6270;
+      --line: #e7dfe9;
+      --bg: #f7f4f8;
+      --ok: #087a55;
+      --warn: #9a5a00;
+      --bad: #a71930;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      width: 390px;
+      background: var(--bg);
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+    }
+    .top {
+      background: linear-gradient(110deg, #16051f 0%, #3d0a3e 55%, #6f064a 100%);
+      padding: 18px 18px 16px;
+      color: #fff;
+    }
+    .brand {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      font-weight: 800;
+      letter-spacing: .04em;
+    }
+    .mark {
+      width: 28px;
+      height: 24px;
+      position: relative;
+    }
+    .mark:before, .mark:after {
+      content: "";
+      position: absolute;
+      width: 13px;
+      height: 24px;
+      top: 0;
+      transform: skew(-22deg);
+      border-radius: 2px;
+    }
+    .mark:before { left: 3px; background: linear-gradient(#f0005b,#4b076f); }
+    .mark:after { right: 3px; background: linear-gradient(#5e0c72,#ae005d); }
+    .sub {
+      margin-top: 4px;
+      font-size: 11px;
+      opacity: .78;
+    }
+    .body { padding: 16px; }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    input {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid #d8cddd;
+      border-radius: 9px;
+      outline: none;
+      font-size: 14px;
+      background: #fff;
+    }
+    input:focus {
+      border-color: #a20a64;
+      box-shadow: 0 0 0 3px rgba(162,10,100,.10);
+    }
+    .buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    button {
+      border: 0;
+      border-radius: 9px;
+      padding: 10px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .primary {
+      color: #fff;
+      background: linear-gradient(90deg, var(--pink), var(--wine));
+    }
+    .secondary {
+      background: #fff;
+      color: #54104e;
+      border: 1px solid #d9cddd;
+    }
+    .status {
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 88px;
+      max-height: 300px;
+      overflow: auto;
+    }
+    .foot {
+      padding: 0 16px 14px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="brand">
+      <span class="mark" aria-hidden="true"></span>
+      <span>AUTOMIND</span>
+    </div>
+    <div class="sub">TOPdesk Session Bridge · Chrome</div>
+  </div>
+
+  <div class="body">
+    <label for="ticket">Número do chamado</label>
+    <input id="ticket" value="I2609-0223" autocomplete="off" spellcheck="false">
+
+    <div class="buttons">
+      <button class="primary" id="testar">Testar leitura</button>
+      <button class="secondary" id="login">Entrar no TOPdesk</button>
+    </div>
+
+    <div class="status" id="saida">Pronto para testar.</div>
+  </div>
+
+  <div class="foot">
+    Somente leitura. A extensão usa a sessão TOPdesk já autenticada no navegador e não armazena senha.
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
