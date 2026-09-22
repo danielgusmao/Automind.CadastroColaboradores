@@ -189,7 +189,7 @@ public sealed class ColaboradoresController(
         if (string.IsNullOrWhiteSpace(nomeGuerra)) return string.Empty;
 
         var semAcentos = RemoverAcentos(nomeGuerra).ToLowerInvariant();
-        var partes = Regex.Split(semAcentos.Trim(), @"\s+")
+        var partes = Regex.Split(semAcentos.Trim(), @"[\s.]+")
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Select(x => Regex.Replace(x, @"[^a-z0-9]", string.Empty))
             .Where(x => !string.IsNullOrWhiteSpace(x))
