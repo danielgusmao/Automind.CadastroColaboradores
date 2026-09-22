@@ -66,152 +66,28 @@ document.addEventListener('DOMContentLoaded', () => {
         status.textContent = mensagem;
     };
 
-    const enviarJsonParaServidor = (form, incident) => {
-        const importUrl = form.dataset.importUrl;
-        const token = form.querySelector('input[name="__RequestVerificationToken"]')?.value;
-
-        if (!importUrl || !token) {
-            mostrarStatus(form, 'Não foi possível preparar a importação do chamado.', 'error');
-            return;
-        }
-
-        const postForm = document.createElement('form');
-        postForm.method = 'post';
-        postForm.action = importUrl;
-        postForm.style.display = 'none';
-
-        const tokenInput = document.createElement('input');
-        tokenInput.type = 'hidden';
-        tokenInput.name = '__RequestVerificationToken';
-        tokenInput.value = token;
-
-        const jsonInput = document.createElement('input');
-        jsonInput.type = 'hidden';
-        jsonInput.name = 'incidentJson';
-        jsonInput.value = JSON.stringify(incident);
-
-        postForm.append(tokenInput, jsonInput);
-        document.body.appendChild(postForm);
-        postForm.submit();
-    };
-
-    const REQUEST_EVENT = 'automind:topdesk:request';
-    const RESPONSE_EVENT = 'automind:topdesk:response';
-    const SOURCE_APP = 'AUTOMIND_CADASTRO';
-
-    const novoRequestId = () => {
-        if (window.crypto?.randomUUID) {
-            return window.crypto.randomUUID();
-        }
-
-        return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    };
-
-    const enviarParaBridge = (tipo, payload = {}, timeoutMs = 5000) => {
-        return new Promise((resolve, reject) => {
-            const requestId = novoRequestId();
-            let finalizado = false;
-
-            const cleanup = () => {
-                document.removeEventListener(RESPONSE_EVENT, onResponse);
-            };
-
-            const timer = window.setTimeout(() => {
-                if (finalizado) return;
-                finalizado = true;
-                cleanup();
-                reject(new Error('A extensão Automind TOPdesk Bridge não respondeu.'));
-            }, timeoutMs);
-
-            const onResponse = (event) => {
-                let data;
-
-                try {
-                    data = typeof event.detail === 'string'
-                        ? JSON.parse(event.detail)
-                        : event.detail;
-                } catch {
-                    return;
-                }
-
-                if (!data || data.requestId !== requestId) return;
-
-                finalizado = true;
-                window.clearTimeout(timer);
-                cleanup();
-                resolve(data);
-            };
-
-            document.addEventListener(RESPONSE_EVENT, onResponse);
-
-            document.dispatchEvent(new CustomEvent(REQUEST_EVENT, {
-                detail: JSON.stringify({
-                    source: SOURCE_APP,
-                    requestId,
-                    type: tipo,
-                    ...payload
-                })
-            }));
-        });
-    };
-
     document.querySelectorAll('[data-topdesk-import]').forEach((form) => {
-        form.addEventListener('submit', async (event) => {
+        // Fallback. Quando a extensão está ativa, o content script captura o
+        // submit em capture=true antes deste listener e faz a importação.
+        form.addEventListener('submit', (event) => {
             event.preventDefault();
 
-            const input = form.querySelector('input[name="chamado"]');
-            const chamado = input?.value.trim().toUpperCase();
+            const versao = document.documentElement.getAttribute('data-automind-topdesk-bridge-version');
 
-            if (!chamado) {
-                mostrarStatus(form, 'Informe o número do chamado TOPdesk.', 'error');
+            if (versao) {
+                mostrarStatus(
+                    form,
+                    `A extensão Automind TOPdesk Bridge ${versao} está carregada, mas não capturou a solicitação. Recarregue a extensão em brave://extensions ou chrome://extensions e atualize esta página.`,
+                    'error'
+                );
                 return;
             }
 
-            mostrarStatus(form, `Consultando ${chamado} no TOPdesk...`, 'info');
-
-            try {
-                const data = await enviarParaBridge('fetch', { ticket: chamado }, 5000);
-
-                if (data.type === 'result' && data.incident) {
-                    mostrarStatus(
-                        form,
-                        `Chamado ${data.incident.number || chamado} localizado. Importando dados...`,
-                        'success');
-
-                    enviarJsonParaServidor(form, data.incident);
-                    return;
-                }
-
-                if (data.type === 'login-required') {
-                    mostrarStatus(
-                        form,
-                        'Sua sessão TOPdesk não está ativa. Abrindo o login SAML; conclua o login e clique em Buscar chamado novamente.',
-                        'warning');
-
-                    try {
-                        await enviarParaBridge('login', {}, 5000);
-                    } catch {
-                        // A mensagem principal ja orienta o operador.
-                    }
-                    return;
-                }
-
-                mostrarStatus(form, data.message || 'Falha ao consultar o TOPdesk.', 'error');
-            } catch (error) {
-                const marker = document.documentElement.getAttribute('data-automind-topdesk-bridge-version');
-
-                if (marker) {
-                    mostrarStatus(
-                        form,
-                        `A extensão Automind TOPdesk Bridge ${marker} está carregada, mas a ponte com a página não respondeu. Recarregue a extensão e tente novamente.`,
-                        'error');
-                } else {
-                    mostrarStatus(
-                        form,
-                        'A extensão Automind TOPdesk Bridge não respondeu. Instale ou habilite a extensão e tente novamente.',
-                        'error');
-                }
-            }
+            mostrarStatus(
+                form,
+                'A extensão Automind TOPdesk Bridge não está instalada ou habilitada. Instale a extensão para importar chamados do TOPdesk.',
+                'error'
+            );
         });
     });
 

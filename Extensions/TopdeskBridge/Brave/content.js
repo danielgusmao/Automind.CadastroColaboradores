@@ -1,145 +1,139 @@
 (() => {
   const VERSION = chrome.runtime.getManifest().version;
-  const REQUEST_EVENT = 'automind:topdesk:request';
-  const RESPONSE_EVENT = 'automind:topdesk:response';
-  const READY_EVENT = 'automind:topdesk:ready';
-  const SOURCE_APP = 'AUTOMIND_CADASTRO';
-  const SOURCE_EXT = 'AUTOMIND_TOPDESK_BRIDGE';
-
-  function safeParse(value) {
-    if (!value) return null;
-    if (typeof value === 'object') return value;
-    try { return JSON.parse(value); } catch { return null; }
-  }
-
-  function dispatchResponse(payload) {
-    document.dispatchEvent(new CustomEvent(RESPONSE_EVENT, {
-      detail: JSON.stringify({
-        source: SOURCE_EXT,
-        ...payload
-      })
-    }));
-  }
+  const MARKER_ATTR = 'data-automind-topdesk-bridge-version';
 
   function markReady() {
     if (document.documentElement) {
-      document.documentElement.setAttribute('data-automind-topdesk-bridge-version', VERSION);
+      document.documentElement.setAttribute(MARKER_ATTR, VERSION);
     }
-
-    document.dispatchEvent(new CustomEvent(READY_EVENT, {
-      detail: JSON.stringify({
-        source: SOURCE_EXT,
-        version: VERSION
-      })
-    }));
   }
 
-  async function processRequest(request) {
-    if (!request || request.source !== SOURCE_APP || !request.requestId) {
+  function showStatus(form, message, type = 'info') {
+    const scope = form.closest('.panel') || document;
+    let status = scope.querySelector('[data-topdesk-status]');
+
+    if (!status) {
+      status = document.createElement('div');
+      status.dataset.topdeskStatus = '';
+      form.insertAdjacentElement('afterend', status);
+    }
+
+    status.hidden = false;
+    status.className = `topdesk-import-status is-${type}`;
+    status.textContent = message;
+  }
+
+  function normalizeTicket(value) {
+    return String(value || '').trim().toUpperCase().replace(/\s+/g, '');
+  }
+
+  function postIncidentToApplication(form, incident) {
+    const importUrl = form.dataset.importUrl;
+    const antiforgery = form.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+    if (!importUrl || !antiforgery) {
+      showStatus(form, 'Não foi possível preparar a importação do chamado.', 'error');
       return;
     }
 
-    try {
-      if (request.type === 'ping') {
-        const response = await chrome.runtime.sendMessage({
-          type: 'AUTOMIND_TOPDESK_PING'
-        });
+    const postForm = document.createElement('form');
+    postForm.method = 'post';
+    postForm.action = importUrl;
+    postForm.style.display = 'none';
 
-        dispatchResponse({
-          requestId: request.requestId,
-          type: 'pong',
-          ...response
-        });
+    const tokenInput = document.createElement('input');
+    tokenInput.type = 'hidden';
+    tokenInput.name = '__RequestVerificationToken';
+    tokenInput.value = antiforgery;
+
+    const jsonInput = document.createElement('input');
+    jsonInput.type = 'hidden';
+    jsonInput.name = 'incidentJson';
+    jsonInput.value = JSON.stringify(incident);
+
+    postForm.append(tokenInput, jsonInput);
+    document.body.appendChild(postForm);
+    postForm.submit();
+  }
+
+  async function handleTopdeskSubmit(event) {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    if (!form.matches('[data-topdesk-import]')) return;
+
+    // A extensão assume integralmente esta submissão. Isso evita depender de
+    // window.postMessage/CustomEvent entre o JavaScript da página e o mundo
+    // isolado do content script do Chromium.
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    const input = form.querySelector('input[name="chamado"]');
+    const ticket = normalizeTicket(input?.value);
+
+    if (!ticket) {
+      showStatus(form, 'Informe o número do chamado TOPdesk.', 'error');
+      return;
+    }
+
+    if (!/^I\d{4}-\d{4}$/.test(ticket)) {
+      showStatus(form, 'Número de chamado inválido. Use o formato I2609-0223.', 'error');
+      return;
+    }
+
+    if (input) input.value = ticket;
+    showStatus(form, `Consultando ${ticket} no TOPdesk...`, 'info');
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'AUTOMIND_TOPDESK_FETCH',
+        ticket
+      });
+
+      if (response?.ok && response?.incident) {
+        showStatus(
+          form,
+          `Chamado ${response.incident.number || ticket} localizado. Importando dados...`,
+          'success'
+        );
+        postIncidentToApplication(form, response.incident);
         return;
       }
 
-      if (request.type === 'fetch') {
-        const response = await chrome.runtime.sendMessage({
-          type: 'AUTOMIND_TOPDESK_FETCH',
-          ticket: request.ticket
-        });
+      if (response?.needsLogin) {
+        showStatus(
+          form,
+          'Sua sessão TOPdesk não está ativa. O login SAML será aberto; conclua o login e clique em Buscar chamado novamente.',
+          'warning'
+        );
 
-        if (response?.ok) {
-          dispatchResponse({
-            requestId: request.requestId,
-            type: 'result',
-            ...response
-          });
-        } else if (response?.needsLogin) {
-          dispatchResponse({
-            requestId: request.requestId,
-            type: 'login-required',
-            ...response
-          });
-        } else {
-          dispatchResponse({
-            requestId: request.requestId,
-            type: 'error',
-            ...(response || { message: 'Falha desconhecida ao consultar o TOPdesk.' })
-          });
+        try {
+          await chrome.runtime.sendMessage({ type: 'AUTOMIND_TOPDESK_LOGIN' });
+        } catch {
+          // A mensagem na tela já orienta o operador.
         }
         return;
       }
 
-      if (request.type === 'login') {
-        const response = await chrome.runtime.sendMessage({
-          type: 'AUTOMIND_TOPDESK_LOGIN'
-        });
-
-        dispatchResponse({
-          requestId: request.requestId,
-          type: 'login-opened',
-          ...response
-        });
-      }
+      showStatus(
+        form,
+        response?.message || 'Falha ao consultar o TOPdesk.',
+        'error'
+      );
     } catch (error) {
-      dispatchResponse({
-        requestId: request.requestId,
-        type: 'error',
-        message: error?.message || String(error)
-      });
+      showStatus(
+        form,
+        `Falha na extensão Automind TOPdesk Bridge: ${error?.message || String(error)}`,
+        'error'
+      );
     }
   }
-
-  document.addEventListener(REQUEST_EVENT, (event) => {
-    processRequest(safeParse(event.detail));
-  });
-
-  // Compatibilidade com a primeira implementacao baseada em postMessage.
-  // Nao utiliza event.source === window, pois content scripts Chromium executam
-  // em um mundo isolado e essa verificacao pode impedir a ponte com a pagina.
-  window.addEventListener('message', async (event) => {
-    if (event.origin !== window.location.origin) return;
-
-    const data = event.data;
-    if (!data || data.source !== SOURCE_APP) return;
-
-    const requestId = data.requestId || `legacy-${Date.now()}-${Math.random()}`;
-
-    if (data.type === 'TOPDESK_FETCH') {
-      await processRequest({
-        source: SOURCE_APP,
-        requestId,
-        type: 'fetch',
-        ticket: data.ticket
-      });
-    } else if (data.type === 'TOPDESK_LOGIN') {
-      await processRequest({
-        source: SOURCE_APP,
-        requestId,
-        type: 'login'
-      });
-    } else if (data.type === 'TOPDESK_PING') {
-      await processRequest({
-        source: SOURCE_APP,
-        requestId,
-        type: 'ping'
-      });
-    }
-  });
 
   markReady();
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', markReady, { once: true });
   }
+
+  // Captura a submissão antes do JavaScript da aplicação.
+  document.addEventListener('submit', handleTopdeskSubmit, true);
 })();
