@@ -1,5 +1,6 @@
 @{
     ViewData["Title"] = "Início";
+    var erroTopdesk = TempData["TopdeskError"] as string;
 }
 
 <div class="app-container content-stack page-enter">
@@ -21,7 +22,8 @@
             <p>Informe o número do chamado. Nesta etapa o ambiente continua sem qualquer escrita no AD.</p>
         </div>
 
-        <form class="ticket-search-form" asp-controller="Colaboradores" asp-action="ExemploTopdesk" method="get" data-ticket-search>
+        <form class="ticket-search-form" method="post" data-topdesk-import data-import-url='@Url.Action("ImportarTopdesk", "Colaboradores")'>
+            @Html.AntiForgeryToken()
             <div class="ticket-input-wrap">
                 <span class="ticket-prefix">#</span>
                 <input name="chamado" value="I2609-0223" placeholder="I2609-0223" autocomplete="off" aria-label="Número do chamado TOPdesk" />
@@ -31,6 +33,27 @@
                 <span aria-hidden="true">→</span>
             </button>
         </form>
+
+        <div class="topdesk-extension-note">
+            <div>
+                <strong>Extensão necessária</strong>
+                <span>Para importar chamados, instale a extensão <b>Automind TOPdesk Bridge</b> no Brave ou Chrome.</span>
+            </div>
+            <div class="topdesk-extension-links">
+                <a href="/ajuda/extensao-topdesk.html" target="_blank" rel="noopener">Manual de instalação</a>
+                <a href="/downloads/AutomindTopdeskBridge-Brave-v1.0.0.zip">Baixar Brave</a>
+                <a href="/downloads/AutomindTopdeskBridge-Chrome-v1.0.0.zip">Baixar Chrome</a>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(erroTopdesk))
+        {
+            <div class="topdesk-import-status is-error" data-topdesk-status>@erroTopdesk</div>
+        }
+        else
+        {
+            <div class="topdesk-import-status" data-topdesk-status hidden></div>
+        }
 
         <div class="ticket-search-meta">
             <span class="status-dot status-dot-safe"></span>

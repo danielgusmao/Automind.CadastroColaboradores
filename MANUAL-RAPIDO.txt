@@ -1,0 +1,38 @@
+AUTOMIND - CADASTRO DE COLABORADORES
+TOPdesk Bridge - Importacao V1
+
+PASTA PADRAO DA EXTENSAO NO COMPUTADOR DO OPERADOR
+%USERPROFILE%\Automind\Extensoes\TopdeskBridge\
+
+Brave:
+1. Baixe o pacote pelo Cadastro de Colaboradores.
+2. Extraia para %USERPROFILE%\Automind\Extensoes\TopdeskBridge\Brave
+3. Abra brave://extensions
+4. Ative Modo do desenvolvedor
+5. Carregar sem compactacao
+6. Selecione a pasta Brave
+
+Chrome:
+1. Baixe o pacote pelo Cadastro de Colaboradores.
+2. Extraia para %USERPROFILE%\Automind\Extensoes\TopdeskBridge\Chrome
+3. Abra chrome://extensions
+4. Ative Modo do desenvolvedor
+5. Carregar sem compactacao
+6. Selecione a pasta Chrome
+
+A pasta precisa permanecer no mesmo local depois da instalacao.
+
+TESTE DE IMPORTACAO
+1. Entre no TOPdesk normalmente pelo SAML.
+2. Abra http://cadastro.automind.com.br
+3. Teste nesta ordem:
+   I2609-0223
+   I2508-0393
+   I2603-0141
+4. Confira os dados importados conforme Docs\14-CASOS-TESTE-TOPDESK.md
+
+SEGURANCA
+- Somente GET no TOPdesk.
+- Nenhuma senha TOPdesk armazenada.
+- Nenhum Application Token.
+- Nenhuma escrita no AD.

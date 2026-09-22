@@ -1,12 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const ticketForm = document.querySelector('[data-ticket-search]');
-    const ticketInput = ticketForm?.querySelector('input[name="chamado"]');
+    const ticketInputs = document.querySelectorAll('input[name="chamado"]');
 
-    if (ticketInput) {
+    ticketInputs.forEach((ticketInput) => {
         ticketInput.addEventListener('input', () => {
             ticketInput.value = ticketInput.value.toUpperCase().replace(/\s+/g, '');
         });
-    }
+    });
 
     const somenteDigitos = (valor) => valor.replace(/\D/g, '');
 
@@ -20,8 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const formatarTelefone = (valor, finalizar = false) => {
         let digitos = removerCodigoPais(somenteDigitos(valor)).slice(0, 11);
 
-        // O campo e exclusivamente de celular. Se vier no formato antigo com
-        // 10 digitos (DDD + 8 digitos), inclui o nono digito automaticamente.
         if (finalizar && digitos.length === 10) {
             digitos = `${digitos.slice(0, 2)}9${digitos.slice(2)}`;
         }
@@ -43,7 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     document.querySelectorAll('[data-phone-br]').forEach((input) => {
-        // Tambem corrige valores que vierem do TOPdesk/modelo sem mascara.
         input.value = formatarTelefone(input.value, true);
 
         input.addEventListener('input', () => {
@@ -52,6 +48,113 @@ document.addEventListener('DOMContentLoaded', () => {
 
         input.addEventListener('blur', () => {
             input.value = formatarTelefone(input.value, true);
+        });
+    });
+
+    const mostrarStatus = (form, mensagem, tipo = 'info') => {
+        const scope = form.closest('.panel') || document;
+        let status = scope.querySelector('[data-topdesk-status]');
+
+        if (!status) {
+            status = document.createElement('div');
+            status.dataset.topdeskStatus = '';
+            form.insertAdjacentElement('afterend', status);
+        }
+
+        status.hidden = false;
+        status.className = `topdesk-import-status is-${tipo}`;
+        status.textContent = mensagem;
+    };
+
+    const enviarJsonParaServidor = (form, incident) => {
+        const importUrl = form.dataset.importUrl;
+        const token = form.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+        if (!importUrl || !token) {
+            mostrarStatus(form, 'Não foi possível preparar a importação do chamado.', 'error');
+            return;
+        }
+
+        const postForm = document.createElement('form');
+        postForm.method = 'post';
+        postForm.action = importUrl;
+        postForm.style.display = 'none';
+
+        const tokenInput = document.createElement('input');
+        tokenInput.type = 'hidden';
+        tokenInput.name = '__RequestVerificationToken';
+        tokenInput.value = token;
+
+        const jsonInput = document.createElement('input');
+        jsonInput.type = 'hidden';
+        jsonInput.name = 'incidentJson';
+        jsonInput.value = JSON.stringify(incident);
+
+        postForm.append(tokenInput, jsonInput);
+        document.body.appendChild(postForm);
+        postForm.submit();
+    };
+
+    document.querySelectorAll('[data-topdesk-import]').forEach((form) => {
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const input = form.querySelector('input[name="chamado"]');
+            const chamado = input?.value.trim().toUpperCase();
+
+            if (!chamado) {
+                mostrarStatus(form, 'Informe o número do chamado TOPdesk.', 'error');
+                return;
+            }
+
+            mostrarStatus(form, `Consultando ${chamado} no TOPdesk...`, 'info');
+
+            let respondeu = false;
+            const timeout = window.setTimeout(() => {
+                if (respondeu) return;
+                mostrarStatus(
+                    form,
+                    'A extensão Automind TOPdesk Bridge não respondeu. Instale ou habilite a extensão e tente novamente.',
+                    'error');
+            }, 3500);
+
+            const onMessage = (messageEvent) => {
+                if (messageEvent.source !== window || messageEvent.origin !== window.location.origin) return;
+
+                const data = messageEvent.data;
+                if (!data || data.source !== 'AUTOMIND_TOPDESK_BRIDGE') return;
+
+                if (!['TOPDESK_RESULT', 'TOPDESK_LOGIN_REQUIRED', 'TOPDESK_ERROR'].includes(data.type)) return;
+
+                respondeu = true;
+                window.clearTimeout(timeout);
+                window.removeEventListener('message', onMessage);
+
+                if (data.type === 'TOPDESK_RESULT' && data.incident) {
+                    mostrarStatus(form, `Chamado ${data.incident.number || chamado} localizado. Importando dados...`, 'success');
+                    enviarJsonParaServidor(form, data.incident);
+                    return;
+                }
+
+                if (data.type === 'TOPDESK_LOGIN_REQUIRED') {
+                    mostrarStatus(form, 'Sua sessão TOPdesk não está ativa. Abrindo o login SAML; conclua o login e clique em Buscar chamado novamente.', 'warning');
+                    window.postMessage({
+                        source: 'AUTOMIND_CADASTRO',
+                        type: 'TOPDESK_LOGIN'
+                    }, window.location.origin);
+                    return;
+                }
+
+                mostrarStatus(form, data.message || 'Falha ao consultar o TOPdesk.', 'error');
+            };
+
+            window.addEventListener('message', onMessage);
+
+            window.postMessage({
+                source: 'AUTOMIND_CADASTRO',
+                type: 'TOPDESK_FETCH',
+                ticket: chamado
+            }, window.location.origin);
         });
     });
 

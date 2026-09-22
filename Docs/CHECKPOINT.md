@@ -32,3 +32,14 @@ Validar o projeto localmente e aprovar o fluxo/telas. Depois implementar autenti
 - telefone com 10 dígitos recebe automaticamente o nono dígito após o DDD;
 - código de país `55`, quando presente, é removido para a apresentação interna;
 - máscara aplicada no formulário e normalização aplicada no ViewModel.
+
+
+## 2026-09-22 - Importação TOPdesk via extensão
+- Teste confirmado: extensão + sessão SAML ativa retorna HTTP 200 para I2609-0223.
+- Teste confirmado: sem sessão TOPdesk retorna HTTP 401.
+- Home e tela de colaborador passam a solicitar o chamado via Automind TOPdesk Bridge.
+- Manual curto publicado em `/ajuda/extensao-topdesk.html`.
+- Downloads Brave/Chrome publicados em `/downloads/`.
+- Pasta local padrão definida: `%USERPROFILE%\Automind\Extensoes\TopdeskBridge\`.
+- Chamados de teste seguintes: I2508-0393 e I2603-0141.
+- AD continua sem escrita; sugestão de acessos ainda está em mock até a etapa de leitura real do AD.

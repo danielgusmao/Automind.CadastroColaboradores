@@ -57,22 +57,25 @@ Usuario
 - Nenhuma operacao de escrita em TOPdesk foi autorizada.
 - Nenhuma operacao de escrita em Active Directory foi autorizada nesta fase.
 
-## Instalacao em modo de desenvolvimento
+## Instalacao manual aprovada para homologacao
 
-Brave:
+Pasta padrao no computador do operador:
 
-`brave://extensions`
+`%USERPROFILE%\Automind\Extensoes\TopdeskBridge\`
 
-Chrome:
+Subpastas:
+- `Brave`
+- `Chrome`
 
-`chrome://extensions`
+Brave: `brave://extensions`
 
-Ativar `Modo do desenvolvedor`, escolher `Carregar sem compactacao` e apontar respectivamente para:
+Chrome: `chrome://extensions`
 
-- `Extensions/TopdeskBridge/Brave`
-- `Extensions/TopdeskBridge/Chrome`
+Ativar `Modo do desenvolvedor`, escolher `Carregar sem compactacao` e apontar para a subpasta do navegador.
 
 A pasta deve permanecer no mesmo local enquanto a extensao estiver instalada dessa forma.
+
+O Cadastro de Colaboradores disponibiliza os pacotes e um manual rapido em `/ajuda/extensao-topdesk.html`.
 
 ## Atualizacoes futuras
 

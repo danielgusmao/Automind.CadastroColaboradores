@@ -21,3 +21,13 @@
 19. Área administrativa fará parte do sistema.
 20. Identidade visual deve usar cores e logo Automind.
 21. Telefone celular deve ser sempre apresentado no formato `(DD) 9 XXXX-XXXX`, por exemplo `(71) 9 8169-6721`. Se a origem trouxer 10 dígitos (DDD + 8 dígitos), por se tratar de campo exclusivamente celular, o sistema acrescentará o nono dígito após o DDD. Se vier com código do país `55`, ele será removido para apresentação interna.
+
+
+## Extensão TOPdesk Bridge - instalação e importação
+- Importação de chamados TOPdesk depende da extensão Automind TOPdesk Bridge.
+- O sistema apenas informa esse pré-requisito; o cadastro manual permanece disponível sem a extensão.
+- Pasta padrão do operador: `%USERPROFILE%\Automind\Extensoes\TopdeskBridge\`.
+- A extensão usa a sessão SAML já autenticada do operador e faz somente GET.
+- Em HTTP 401, deve solicitar autenticação TOPdesk/SAML.
+- O JSON do incidente é enviado ao backend do Cadastro apenas para parse e preenchimento do formulário.
+- Nenhuma credencial TOPdesk é persistida pelo Cadastro.

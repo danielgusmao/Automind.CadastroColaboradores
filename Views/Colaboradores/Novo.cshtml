@@ -28,20 +28,26 @@
             <h2>Chamado TOPdesk</h2>
             <p>O formulário ficará editável após a importação para permitir conferência antes das validações.</p>
         </div>
-        <div class="source-controls">
+        <form class="source-controls" method="post" data-topdesk-import data-import-url='@Url.Action("ImportarTopdesk", "Colaboradores")'>
+            @Html.AntiForgeryToken()
             <div class="field compact-field">
                 <label>Número do chamado</label>
                 <div class="ticket-input-wrap compact-ticket">
                     <span class="ticket-prefix">#</span>
-                    <input value="@Model.Chamado" placeholder="I2609-0223" />
+                    <input name="chamado" value="@Model.Chamado" placeholder="I2609-0223" autocomplete="off" />
                 </div>
             </div>
             <div class="field compact-field source-field">
                 <label>Fonte</label>
                 <input value="@Model.Fonte" readonly />
             </div>
-            <button type="button" class="btn btn-primary">Carregar TOPdesk</button>
+            <button type="submit" class="btn btn-primary">Carregar TOPdesk</button>
+        </form>
+        <div class="source-extension-help">
+            Para carregar chamados, a extensão <strong>Automind TOPdesk Bridge</strong> precisa estar instalada no navegador.
+            <a href="/ajuda/extensao-topdesk.html" target="_blank" rel="noopener">Ver instalação</a>
         </div>
+        <div class="topdesk-import-status" data-topdesk-status hidden></div>
     </section>
 
     <form class="provisioning-grid">

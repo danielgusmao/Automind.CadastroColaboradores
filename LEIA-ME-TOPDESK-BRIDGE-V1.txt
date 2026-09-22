@@ -1,0 +1,9 @@
+CADASTRO DE COLABORADORES - PATCH TOPDESK BRIDGE V1
+
+1. Copie o conteudo deste pacote sobre a raiz do projeto.
+2. Recompile com dotnet build.
+3. Teste primeiro I2609-0223.
+4. Depois teste I2508-0393 e I2603-0141.
+5. Commit/push somente apos o build e a importacao estarem corretos.
+
+Este patch nao cria ou altera usuarios no AD e nao escreve no TOPdesk.
