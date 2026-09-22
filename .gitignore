@@ -1,0 +1,17 @@
+.vs/
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Arquivos locais / segredos
+.env
+.env.*
+appsettings.Local.json
+appsettings.*.Local.json
+
+# Testes / publicação
+TestResults/
+publish/

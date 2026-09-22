@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - Automind</title>
+    <link rel="stylesheet" href="~/css/automind.css" asp-append-version="true" />
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" asp-controller="Home" asp-action="Index">
+        <img src="~/images/logo-automind.png" alt="Automind" />
+    </a>
+    <nav>
+        <a asp-controller="Colaboradores" asp-action="Novo">Novo colaborador</a>
+        <a asp-controller="Historico" asp-action="Index">Histórico</a>
+        <a asp-controller="Admin" asp-action="Index">Administração</a>
+    </nav>
+</header>
+<main class="page-shell">
+    @RenderBody()
+</main>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

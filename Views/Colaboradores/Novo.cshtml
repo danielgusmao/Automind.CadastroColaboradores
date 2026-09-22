@@ -1,0 +1,61 @@
+@model CollaboratorFormViewModel
+@{ ViewData["Title"] = "Novo colaborador"; var ous = ViewBag.Ous as IReadOnlyList<string> ?? []; }
+<div class="page-header">
+    <div><span class="eyebrow">Provisionamento</span><h1>Novo colaborador</h1></div>
+    <span class="badge-readonly">FASE 1 • SOMENTE LEITURA</span>
+</div>
+
+<div class="notice">Nenhum botão desta tela cria ou altera objetos no Active Directory. A escrita continuará bloqueada até aprovação explícita.</div>
+
+<form class="form-grid">
+<section class="card span-2">
+    <h2>Origem</h2>
+    <div class="row-3">
+        <div><label>Número do chamado</label><input value="@Model.Chamado" placeholder="I2609-0223" /></div>
+        <div><label>Fonte</label><input value="@Model.Fonte" readonly /></div>
+        <div class="align-end"><button type="button" class="btn-secondary">Carregar TOPdesk</button></div>
+    </div>
+</section>
+<section class="card">
+    <h2>Dados do colaborador</h2>
+    <label>Nome completo</label><input value="@Model.NomeCompleto" />
+    <label>Nome de guerra <small>(exatamente 2 nomes)</small></label><input value="@Model.NomeGuerra" />
+    <div class="row-2"><div><label>Login</label><input value="@Model.Login" /></div><div><label>E-mail</label><input value="@Model.Email" /></div></div>
+    <label>Telefone celular</label><input value="@Model.TelefoneCelular" />
+    <label class="check"><input type="checkbox" checked="@Model.DivulgarContato" /> Divulgar contato na intranet</label>
+    <label>Local de trabalho</label><input value="@Model.LocalTrabalho" />
+</section>
+<section class="card">
+    <h2>Organização</h2>
+    <label>Cargo em português</label><input value="@Model.CargoPortugues" />
+    <label>Cargo em inglês</label><input value="@Model.CargoIngles" />
+    <label>Departamento</label><input value="@Model.Departamento" />
+    <label>Empresa</label><input value="Automind" readonly />
+    <label>Superior imediato</label><input value="@Model.SuperiorImediato" />
+    <label>OU de destino</label>
+    <select><option value="">Selecione...</option>@foreach (var ou in ous){<option>@ou</option>}</select>
+</section>
+<section class="card span-2">
+    <h2>Sugestão automática de acessos pelo cargo</h2>
+    <p class="muted">Mock de desenvolvimento. Depois será calculado pela interseção dos grupos dos usuários ativos com mesmo cargo/departamento.</p>
+    @if (Model.GruposSugeridos.Count == 0)
+    {
+        <div class="empty">Nenhuma sugestão carregada. Use o chamado exemplo para visualizar.</div>
+    }
+    else
+    {
+        <table><thead><tr><th>Selecionar</th><th>Grupo</th><th>Encontrado em</th><th>Situação</th></tr></thead><tbody>
+        @foreach (var g in Model.GruposSugeridos)
+        {
+            <tr class="@(g.Protegido ? "protected" : "")"><td><input type="checkbox" checked="@g.Selecionado" disabled="@g.Protegido" /></td><td>@g.Nome</td><td>@g.EncontradoEm/@g.TotalComparados</td><td>@(g.Protegido ? "Protegido" : g.EncontradoEm == g.TotalComparados ? "Comum ao cargo" : "Exceção encontrada")</td></tr>
+        }
+        </tbody></table>
+    }
+    <div class="toolbar"><button type="button" class="btn-secondary">Buscar grupos</button><button type="button" class="btn-secondary">Usar usuário como referência</button></div>
+</section>
+<section class="card span-2">
+    <h2>Validação</h2>
+    <div class="validation-list"><span>○ Login disponível</span><span>○ UPN/e-mail disponível</span><span>○ Superior localizado</span><span>○ OU válida</span><span>○ Grupos existentes</span><span>○ Licenças M365 disponíveis</span></div>
+    <button type="button" class="btn-primary">Validar no AD (somente leitura)</button>
+</section>
+</form>

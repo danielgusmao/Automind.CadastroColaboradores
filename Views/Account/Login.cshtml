@@ -1,0 +1,27 @@
+@model LoginViewModel
+@{ ViewData["Title"] = "Acesso"; Layout = null; }
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Acesso - Automind</title>
+<link rel="stylesheet" href="~/css/automind.css" />
+</head>
+<body class="login-body">
+<section class="login-card">
+    <img class="login-logo" src="~/images/logo-automind.png" alt="Automind" />
+    <h1>Cadastro de Colaboradores</h1>
+    <p class="muted">Acesso restrito à equipe autorizada.</p>
+    <form asp-action="Login" method="post">
+        <div asp-validation-summary="ModelOnly" class="validation"></div>
+        <label asp-for="Usuario"></label>
+        <input asp-for="Usuario" autocomplete="username" />
+        <label asp-for="Senha"></label>
+        <input asp-for="Senha" autocomplete="current-password" />
+        <button type="submit" class="btn-primary">Entrar</button>
+    </form>
+    <p class="dev-note">Pacote inicial: autenticação AD real ainda NÃO habilitada.</p>
+</section>
+</body>
+</html>

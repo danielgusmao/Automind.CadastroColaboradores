@@ -1,0 +1,14 @@
+@{ ViewData["Title"] = "Início"; }
+<section class="hero">
+    <div>
+        <span class="eyebrow">Automind</span>
+        <h1>Cadastro de Colaboradores</h1>
+        <p>Provisionamento guiado, auditável e com validação antes de qualquer alteração.</p>
+    </div>
+</section>
+<div class="grid-cards">
+    <a class="card action-card" asp-controller="Colaboradores" asp-action="ExemploTopdesk"><strong>Testar chamado exemplo</strong><span>Carrega I2609-0223 com dados simulados.</span></a>
+    <a class="card action-card" asp-controller="Colaboradores" asp-action="Novo"><strong>Novo cadastro manual</strong><span>Preencha e revise os dados sem alterar o AD.</span></a>
+    <a class="card action-card" asp-controller="Historico" asp-action="Index"><strong>Histórico</strong><span>Estrutura preparada para auditoria futura.</span></a>
+    <a class="card action-card" asp-controller="Admin" asp-action="Index"><strong>Administração</strong><span>Destinatários Teams, cargos, grupos protegidos e integrações.</span></a>
+</div>
