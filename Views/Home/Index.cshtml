@@ -1,14 +1,90 @@
-@{ ViewData["Title"] = "Início"; }
-<section class="hero">
-    <div>
-        <span class="eyebrow">Automind</span>
-        <h1>Cadastro de Colaboradores</h1>
-        <p>Provisionamento guiado, auditável e com validação antes de qualquer alteração.</p>
-    </div>
-</section>
-<div class="grid-cards">
-    <a class="card action-card" asp-controller="Colaboradores" asp-action="ExemploTopdesk"><strong>Testar chamado exemplo</strong><span>Carrega I2609-0223 com dados simulados.</span></a>
-    <a class="card action-card" asp-controller="Colaboradores" asp-action="Novo"><strong>Novo cadastro manual</strong><span>Preencha e revise os dados sem alterar o AD.</span></a>
-    <a class="card action-card" asp-controller="Historico" asp-action="Index"><strong>Histórico</strong><span>Estrutura preparada para auditoria futura.</span></a>
-    <a class="card action-card" asp-controller="Admin" asp-action="Index"><strong>Administração</strong><span>Destinatários Teams, cargos, grupos protegidos e integrações.</span></a>
+@{
+    ViewData["Title"] = "Início";
+}
+
+<div class="app-container content-stack page-enter">
+    <section class="dashboard-hero">
+        <div class="dashboard-hero-copy">
+            <span class="eyebrow eyebrow-light">CADASTRO DE COLABORADORES</span>
+            <h1>Provisionamento simples, inteligente e confiável.</h1>
+            <p>Centralize a leitura do TOPdesk, validações no Active Directory, sugestão de acessos, licenciamento e auditoria em um único fluxo.</p>
+        </div>
+        <div class="hero-symbol" aria-hidden="true">
+            <img src="~/images/automind-symbol.png" alt="" />
+        </div>
+    </section>
+
+    <section class="panel ticket-search-panel">
+        <div class="ticket-search-copy">
+            <span class="eyebrow">INICIAR CADASTRO</span>
+            <h2>Buscar solicitação no TOPdesk</h2>
+            <p>Informe o número do chamado. Nesta etapa o ambiente continua sem qualquer escrita no AD.</p>
+        </div>
+
+        <form class="ticket-search-form" asp-controller="Colaboradores" asp-action="ExemploTopdesk" method="get" data-ticket-search>
+            <div class="ticket-input-wrap">
+                <span class="ticket-prefix">#</span>
+                <input name="chamado" value="I2609-0223" placeholder="I2609-0223" autocomplete="off" aria-label="Número do chamado TOPdesk" />
+            </div>
+            <button class="btn btn-primary btn-search" type="submit">
+                <span>Buscar chamado</span>
+                <span aria-hidden="true">→</span>
+            </button>
+        </form>
+
+        <div class="ticket-search-meta">
+            <span class="status-dot status-dot-safe"></span>
+            <strong>Modo seguro</strong>
+            <span>Consulta e pré-validação. Nenhuma alteração em AD, Microsoft 365, TOPdesk ou Teams.</span>
+        </div>
+    </section>
+
+    <section class="quick-actions-grid">
+        <a class="quick-action-card quick-action-primary" asp-controller="Colaboradores" asp-action="Novo">
+            <span class="quick-action-icon">+</span>
+            <div>
+                <span class="quick-action-kicker">SEM CHAMADO</span>
+                <strong>Novo cadastro manual</strong>
+                <p>Use o mesmo fluxo de validação preenchendo os dados manualmente.</p>
+            </div>
+            <span class="quick-action-arrow">→</span>
+        </a>
+
+        <a class="quick-action-card" asp-controller="Historico" asp-action="Index">
+            <span class="quick-action-icon">↺</span>
+            <div>
+                <span class="quick-action-kicker">AUDITORIA</span>
+                <strong>Histórico</strong>
+                <p>Acompanhe solicitações, responsáveis, resultados e integrações.</p>
+            </div>
+            <span class="quick-action-arrow">→</span>
+        </a>
+
+        <a class="quick-action-card" asp-controller="Admin" asp-action="Index">
+            <span class="quick-action-icon">⚙</span>
+            <div>
+                <span class="quick-action-kicker">CONFIGURAÇÃO</span>
+                <strong>Administração</strong>
+                <p>Destinatários Teams, cargos, grupos protegidos e integrações.</p>
+            </div>
+            <span class="quick-action-arrow">→</span>
+        </a>
+    </section>
+
+    <section class="workflow-panel">
+        <div class="workflow-heading">
+            <div>
+                <span class="eyebrow">FLUXO PROPOSTO</span>
+                <h2>Do chamado à entrega dos acessos</h2>
+            </div>
+            <span class="badge-readonly">FASE 1 · SOMENTE LEITURA</span>
+        </div>
+        <div class="workflow-steps">
+            <div class="workflow-step"><span>01</span><strong>TOPdesk</strong><small>Importar e revisar dados</small></div>
+            <div class="workflow-step"><span>02</span><strong>AD</strong><small>Validar usuário, OU e gestor</small></div>
+            <div class="workflow-step"><span>03</span><strong>Acessos</strong><small>Comparar cargos e grupos comuns</small></div>
+            <div class="workflow-step"><span>04</span><strong>M365</strong><small>Consultar licenças disponíveis</small></div>
+            <div class="workflow-step"><span>05</span><strong>Conclusão</strong><small>Auditar e preparar comunicação</small></div>
+        </div>
+    </section>
 </div>

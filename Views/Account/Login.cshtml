@@ -1,27 +1,71 @@
 @model LoginViewModel
-@{ ViewData["Title"] = "Acesso"; Layout = null; }
+@{
+    ViewData["Title"] = "Acesso";
+    Layout = null;
+}
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Acesso - Automind</title>
-<link rel="stylesheet" href="~/css/automind.css" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#121016" />
+    <title>Acesso - Cadastro de Colaboradores | Automind</title>
+    <link rel="icon" type="image/png" href="~/images/automind-symbol.png" />
+    <link rel="stylesheet" href="~/css/automind.css" asp-append-version="true" />
 </head>
 <body class="login-body">
-<section class="login-card">
-    <img class="login-logo" src="~/images/logo-automind.png" alt="Automind" />
-    <h1>Cadastro de Colaboradores</h1>
-    <p class="muted">Acesso restrito à equipe autorizada.</p>
-    <form asp-action="Login" method="post">
-        <div asp-validation-summary="ModelOnly" class="validation"></div>
-        <label asp-for="Usuario"></label>
-        <input asp-for="Usuario" autocomplete="username" />
-        <label asp-for="Senha"></label>
-        <input asp-for="Senha" autocomplete="current-password" />
-        <button type="submit" class="btn-primary">Entrar</button>
-    </form>
-    <p class="dev-note">Pacote inicial: autenticação AD real ainda NÃO habilitada.</p>
-</section>
+    <main class="login-shell">
+        <section class="login-visual" aria-hidden="true">
+            <div class="login-visual-overlay"></div>
+            <div class="login-visual-content">
+                <img class="login-visual-logo" src="~/images/automind-logo-negative.png" alt="" />
+                <div>
+                    <span class="eyebrow eyebrow-light">USO INTERNO</span>
+                    <h1>Cadastro de<br />Colaboradores</h1>
+                    <p>Um fluxo único para validação, acessos e integração do novo colaborador.</p>
+                </div>
+                <span class="login-tagline">SIMPLE · SMART · RELIABLE</span>
+            </div>
+        </section>
+
+        <section class="login-panel">
+            <div class="login-panel-inner">
+                <img class="login-mobile-logo" src="~/images/automind-logo-positive.png" alt="Automind" />
+                <span class="eyebrow">ACESSO RESTRITO</span>
+                <h2>Entre com sua conta Automind</h2>
+                <p class="login-subtitle">O acesso será validado pelo Active Directory e restrito à equipe autorizada.</p>
+
+                <form asp-action="Login" method="post" class="form-stack">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+
+                    <div class="field">
+                        <label asp-for="Usuario">Usuário</label>
+                        <div class="input-with-icon">
+                            <span>U</span>
+                            <input asp-for="Usuario" autocomplete="username" placeholder="daniel.gusmao" autofocus />
+                        </div>
+                        <span asp-validation-for="Usuario"></span>
+                    </div>
+
+                    <div class="field">
+                        <label asp-for="Senha">Senha</label>
+                        <div class="input-with-icon">
+                            <span>●</span>
+                            <input asp-for="Senha" autocomplete="current-password" placeholder="Sua senha corporativa" />
+                        </div>
+                        <span asp-validation-for="Senha"></span>
+                    </div>
+
+                    <button class="btn btn-primary btn-block btn-login" type="submit">Entrar</button>
+                </form>
+
+                <div class="security-note">
+                    <span class="status-dot status-dot-safe"></span>
+                    <p><strong>Credenciais não são armazenadas.</strong><br />Nesta fase a autenticação ainda utiliza o serviço de desenvolvimento já existente no projeto.</p>
+                </div>
+            </div>
+        </section>
+    </main>
 </body>
 </html>

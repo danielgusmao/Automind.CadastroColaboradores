@@ -1,0 +1,31 @@
+PACOTE DE LAYOUT AUTOMIND - V1
+
+Substituir SOMENTE estes arquivos/pastas no projeto atual:
+
+Views/Shared/_Layout.cshtml
+Views/Home/Index.cshtml
+Views/Account/Login.cshtml
+Views/Colaboradores/Novo.cshtml
+wwwroot/css/automind.css
+wwwroot/js/site.js
+wwwroot/images/automind-wallpaper.jpg
+wwwroot/images/automind-logo-negative.png
+wwwroot/images/automind-logo-positive.png
+wwwroot/images/automind-symbol.png
+Docs/10-FLUXO-GIT-E-PUBLICACAO.md
+Docs/11-IDENTIDADE-VISUAL.md
+
+Este pacote NAO altera:
+- Controllers
+- Models
+- Services
+- Program.cs
+- appsettings.json
+- AD
+- TOPdesk
+- Microsoft 365
+- Teams
+- pipeline/release
+
+O botao de busca do TOPdesk continua usando a action de desenvolvimento ExemploTopdesk ja existente.
+A integracao TOPdesk real sera feita em etapa separada.

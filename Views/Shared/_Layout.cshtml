@@ -1,25 +1,60 @@
+@{
+    var usuario = Context.Session.GetString("Usuario");
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+}
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>@ViewData["Title"] - Automind</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#17121d" />
+    <title>@ViewData["Title"] - Cadastro de Colaboradores | Automind</title>
+    <link rel="icon" type="image/png" href="~/images/automind-symbol.png" />
     <link rel="stylesheet" href="~/css/automind.css" asp-append-version="true" />
 </head>
 <body>
-<header class="topbar">
-    <a class="brand" asp-controller="Home" asp-action="Index">
-        <img src="~/images/logo-automind.png" alt="Automind" />
-    </a>
-    <nav>
-        <a asp-controller="Colaboradores" asp-action="Novo">Novo colaborador</a>
-        <a asp-controller="Historico" asp-action="Index">Histórico</a>
-        <a asp-controller="Admin" asp-action="Index">Administração</a>
-    </nav>
-</header>
-<main class="page-shell">
-    @RenderBody()
-</main>
-@await RenderSectionAsync("Scripts", required: false)
+    <header class="topbar-shell">
+        <div class="app-container topbar">
+            <a class="brand" asp-controller="Home" asp-action="Index" aria-label="Automind - Cadastro de Colaboradores">
+                <img src="~/images/automind-logo-negative.png" alt="Automind - Simple Smart Reliable" />
+            </a>
+
+            <nav class="main-nav" aria-label="Navegação principal">
+                <a class="@(controller == "Home" ? "active" : "")" asp-controller="Home" asp-action="Index">Início</a>
+                <a class="@(controller == "Colaboradores" ? "active" : "")" asp-controller="Colaboradores" asp-action="Novo">Novo colaborador</a>
+                <a class="@(controller == "Historico" ? "active" : "")" asp-controller="Historico" asp-action="Index">Histórico</a>
+                <a class="@(controller == "Admin" ? "active" : "")" asp-controller="Admin" asp-action="Index">Administração</a>
+            </nav>
+
+            <div class="top-actions">
+                <div class="user-chip">
+                    <span class="user-avatar">@(!string.IsNullOrWhiteSpace(usuario) ? usuario[..1].ToUpperInvariant() : "A")</span>
+                    <div>
+                        <strong>@(string.IsNullOrWhiteSpace(usuario) ? "Usuário" : usuario)</strong>
+                        <small>Ambiente interno</small>
+                    </div>
+                </div>
+                <form asp-controller="Account" asp-action="Logout" method="post">
+                    @Html.AntiForgeryToken()
+                    <button class="btn btn-ghost btn-small" type="submit">Sair</button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <main class="page-main">
+        @RenderBody()
+    </main>
+
+    <footer class="site-footer">
+        <div class="app-container footer-inner">
+            <span>© @DateTime.Now.Year Automind · Uso interno</span>
+            <span>Cadastro de Colaboradores</span>
+            <span class="footer-readonly">Fase atual: integrações em modo seguro / leitura</span>
+        </div>
+    </footer>
+
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
