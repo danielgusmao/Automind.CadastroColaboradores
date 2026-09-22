@@ -1,5 +1,5 @@
 AUTOMIND TOPDESK SESSION BRIDGE - Chrome
-Versao 1.0.0
+Versao 1.0.1
 
 OBJETIVO
 -------

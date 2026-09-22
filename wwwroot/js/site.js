@@ -95,8 +95,68 @@ document.addEventListener('DOMContentLoaded', () => {
         postForm.submit();
     };
 
+    const REQUEST_EVENT = 'automind:topdesk:request';
+    const RESPONSE_EVENT = 'automind:topdesk:response';
+    const SOURCE_APP = 'AUTOMIND_CADASTRO';
+
+    const novoRequestId = () => {
+        if (window.crypto?.randomUUID) {
+            return window.crypto.randomUUID();
+        }
+
+        return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    };
+
+    const enviarParaBridge = (tipo, payload = {}, timeoutMs = 5000) => {
+        return new Promise((resolve, reject) => {
+            const requestId = novoRequestId();
+            let finalizado = false;
+
+            const cleanup = () => {
+                document.removeEventListener(RESPONSE_EVENT, onResponse);
+            };
+
+            const timer = window.setTimeout(() => {
+                if (finalizado) return;
+                finalizado = true;
+                cleanup();
+                reject(new Error('A extensão Automind TOPdesk Bridge não respondeu.'));
+            }, timeoutMs);
+
+            const onResponse = (event) => {
+                let data;
+
+                try {
+                    data = typeof event.detail === 'string'
+                        ? JSON.parse(event.detail)
+                        : event.detail;
+                } catch {
+                    return;
+                }
+
+                if (!data || data.requestId !== requestId) return;
+
+                finalizado = true;
+                window.clearTimeout(timer);
+                cleanup();
+                resolve(data);
+            };
+
+            document.addEventListener(RESPONSE_EVENT, onResponse);
+
+            document.dispatchEvent(new CustomEvent(REQUEST_EVENT, {
+                detail: JSON.stringify({
+                    source: SOURCE_APP,
+                    requestId,
+                    type: tipo,
+                    ...payload
+                })
+            }));
+        });
+    };
+
     document.querySelectorAll('[data-topdesk-import]').forEach((form) => {
-        form.addEventListener('submit', (event) => {
+        form.addEventListener('submit', async (event) => {
             event.preventDefault();
 
             const input = form.querySelector('input[name="chamado"]');
@@ -109,52 +169,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
             mostrarStatus(form, `Consultando ${chamado} no TOPdesk...`, 'info');
 
-            let respondeu = false;
-            const timeout = window.setTimeout(() => {
-                if (respondeu) return;
-                mostrarStatus(
-                    form,
-                    'A extensão Automind TOPdesk Bridge não respondeu. Instale ou habilite a extensão e tente novamente.',
-                    'error');
-            }, 3500);
+            try {
+                const data = await enviarParaBridge('fetch', { ticket: chamado }, 5000);
 
-            const onMessage = (messageEvent) => {
-                if (messageEvent.source !== window || messageEvent.origin !== window.location.origin) return;
+                if (data.type === 'result' && data.incident) {
+                    mostrarStatus(
+                        form,
+                        `Chamado ${data.incident.number || chamado} localizado. Importando dados...`,
+                        'success');
 
-                const data = messageEvent.data;
-                if (!data || data.source !== 'AUTOMIND_TOPDESK_BRIDGE') return;
-
-                if (!['TOPDESK_RESULT', 'TOPDESK_LOGIN_REQUIRED', 'TOPDESK_ERROR'].includes(data.type)) return;
-
-                respondeu = true;
-                window.clearTimeout(timeout);
-                window.removeEventListener('message', onMessage);
-
-                if (data.type === 'TOPDESK_RESULT' && data.incident) {
-                    mostrarStatus(form, `Chamado ${data.incident.number || chamado} localizado. Importando dados...`, 'success');
                     enviarJsonParaServidor(form, data.incident);
                     return;
                 }
 
-                if (data.type === 'TOPDESK_LOGIN_REQUIRED') {
-                    mostrarStatus(form, 'Sua sessão TOPdesk não está ativa. Abrindo o login SAML; conclua o login e clique em Buscar chamado novamente.', 'warning');
-                    window.postMessage({
-                        source: 'AUTOMIND_CADASTRO',
-                        type: 'TOPDESK_LOGIN'
-                    }, window.location.origin);
+                if (data.type === 'login-required') {
+                    mostrarStatus(
+                        form,
+                        'Sua sessão TOPdesk não está ativa. Abrindo o login SAML; conclua o login e clique em Buscar chamado novamente.',
+                        'warning');
+
+                    try {
+                        await enviarParaBridge('login', {}, 5000);
+                    } catch {
+                        // A mensagem principal ja orienta o operador.
+                    }
                     return;
                 }
 
                 mostrarStatus(form, data.message || 'Falha ao consultar o TOPdesk.', 'error');
-            };
+            } catch (error) {
+                const marker = document.documentElement.getAttribute('data-automind-topdesk-bridge-version');
 
-            window.addEventListener('message', onMessage);
-
-            window.postMessage({
-                source: 'AUTOMIND_CADASTRO',
-                type: 'TOPDESK_FETCH',
-                ticket: chamado
-            }, window.location.origin);
+                if (marker) {
+                    mostrarStatus(
+                        form,
+                        `A extensão Automind TOPdesk Bridge ${marker} está carregada, mas a ponte com a página não respondeu. Recarregue a extensão e tente novamente.`,
+                        'error');
+                } else {
+                    mostrarStatus(
+                        form,
+                        'A extensão Automind TOPdesk Bridge não respondeu. Instale ou habilite a extensão e tente novamente.',
+                        'error');
+                }
+            }
         });
     });
 

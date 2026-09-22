@@ -28,3 +28,12 @@ Comportamento validado:
 - a extensão Chromium consegue fazer a leitura com a sessão do operador.
 
 A integração permanece somente leitura. Nenhuma escrita no TOPdesk foi autorizada.
+
+## Chamado estruturado x chamado simples
+
+Todo provisionamento deve possuir um número de chamado TOPdesk.
+
+- **Chamado estruturado:** utiliza o formulário de criação de usuário; os dados podem ser importados pela extensão Automind TOPdesk Bridge e depois revisados.
+- **Chamado simples:** não utiliza o formulário estruturado; o operador informa o número do chamado e preenche manualmente os dados do colaborador.
+
+Não existe fluxo de cadastro "sem chamado".

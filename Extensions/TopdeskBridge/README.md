@@ -1,6 +1,6 @@
 # Automind TOPdesk Session Bridge
 
-Versao atual: **1.0.0**
+Versao atual: **1.0.1**
 
 Extensao auxiliar do projeto `Automind.CadastroColaboradores` para consultar incidentes do TOPdesk utilizando a **sessao SAML ja autenticada do operador no navegador**.
 

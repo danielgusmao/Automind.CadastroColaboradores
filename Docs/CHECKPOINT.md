@@ -43,3 +43,10 @@ Validar o projeto localmente e aprovar o fluxo/telas. Depois implementar autenti
 - Pasta local padrão definida: `%USERPROFILE%\Automind\Extensoes\TopdeskBridge\`.
 - Chamados de teste seguintes: I2508-0393 e I2603-0141.
 - AD continua sem escrita; sugestão de acessos ainda está em mock até a etapa de leitura real do AD.
+
+## 2026-09-22 - Regra obrigatória de chamado
+- todo cadastro de colaborador deve possuir chamado TOPdesk;
+- não existe cadastro "sem chamado";
+- chamado estruturado: importa JSON pela extensão;
+- chamado simples: número do chamado obrigatório e preenchimento manual dos dados;
+- fonte permanece TOPdesk nos dois modos.

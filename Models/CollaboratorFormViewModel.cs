@@ -7,7 +7,7 @@ public sealed class CollaboratorFormViewModel
     private string? _telefoneCelular;
 
     public string? Chamado { get; set; }
-    public string Fonte { get; set; } = "Manual";
+    public string Fonte { get; set; } = "TOPdesk";
     public string NomeCompleto { get; set; } = string.Empty;
     public string NomeGuerra { get; set; } = string.Empty;
     public string Login { get; set; } = string.Empty;

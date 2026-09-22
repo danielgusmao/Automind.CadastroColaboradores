@@ -37,7 +37,7 @@ A pasta não deve ser removida nem movida depois de usar **Carregar sem compacta
 
 ## Regra do sistema
 
-A página apenas informa que a extensão é necessária para a importação TOPdesk. O cadastro manual continua independente da extensão.
+A página apenas informa que a extensão é necessária para a importação TOPdesk. O preenchimento manual continua independente da extensão, porém o cadastro ainda deve estar vinculado a um chamado TOPdesk.
 
 ## Comportamento de importação
 

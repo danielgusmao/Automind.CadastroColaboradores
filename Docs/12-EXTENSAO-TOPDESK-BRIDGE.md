@@ -105,3 +105,12 @@ Isso sera tratado como etapa separada e nao deve ser implementado sem aprovacao.
 - I2603-0141 - Adriano Chagas de Lima.
 
 Os JSONs confirmaram que o campo `request` contem os dados do formulario de criacao de usuario necessarios para o parser inicial.
+
+
+## Correcao Bridge 1.0.1 - 22/09/2026
+
+- O popup da extensao consultava o TOPdesk com HTTP 200, mas o site nao recebia resposta da extensao.
+- O ponto fragil identificado foi a comunicacao pagina/content-script baseada em `window.postMessage` com filtro `event.source === window`.
+- A comunicacao principal passou a usar eventos DOM dedicados `automind:topdesk:request` e `automind:topdesk:response`, com `requestId`.
+- Foi adicionado marcador de versao no elemento HTML para diagnostico.
+- O fluxo TOPdesk permanece somente leitura e nenhuma regra de AD, M365 ou Teams foi alterada.

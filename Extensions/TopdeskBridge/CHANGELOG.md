@@ -1,5 +1,15 @@
 # Changelog - Automind TOPdesk Bridge
 
+## 1.0.1 - 22/09/2026
+
+Correcao da ponte entre o site e a extensao.
+
+- Substituido o canal principal baseado apenas em `window.postMessage` por eventos DOM dedicados com `requestId`.
+- Removida a dependencia da verificacao `event.source === window`, que podia impedir a comunicacao entre a pagina e o content script Chromium em mundo isolado.
+- Adicionado marcador DOM `data-automind-topdesk-bridge-version` para diagnostico.
+- Mantida compatibilidade com a implementacao anterior via `postMessage`.
+- Nenhuma mudanca no acesso ao TOPdesk: continua somente leitura e usando a sessao SAML do operador.
+
 ## 1.0.0 - 22/09/2026
 
 Primeira versao aprovada para testes.

@@ -16,7 +16,7 @@ $packages = @(
 
 foreach ($package in $packages) {
     $source = Join-Path $root $package.Folder
-    $zip = Join-Path $dist ("AutomindTopdeskBridge-{0}-v1.0.0.zip" -f $package.Name)
+    $zip = Join-Path $dist ("AutomindTopdeskBridge-{0}-v1.0.1.zip" -f $package.Name)
 
     if (-not (Test-Path $source)) {
         throw "Pasta nao encontrada: $source"

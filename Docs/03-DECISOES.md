@@ -25,9 +25,12 @@
 
 ## Extensão TOPdesk Bridge - instalação e importação
 - Importação de chamados TOPdesk depende da extensão Automind TOPdesk Bridge.
-- O sistema apenas informa esse pré-requisito; o cadastro manual permanece disponível sem a extensão.
+- O sistema apenas informa esse pré-requisito; o preenchimento manual permanece disponível sem a extensão, mas continua exigindo um número de chamado TOPdesk.
 - Pasta padrão do operador: `%USERPROFILE%\Automind\Extensoes\TopdeskBridge\`.
 - A extensão usa a sessão SAML já autenticada do operador e faz somente GET.
 - Em HTTP 401, deve solicitar autenticação TOPdesk/SAML.
 - O JSON do incidente é enviado ao backend do Cadastro apenas para parse e preenchimento do formulário.
 - Nenhuma credencial TOPdesk é persistida pelo Cadastro.
+
+22. Todo cadastro de colaborador deve estar vinculado a um chamado TOPdesk. O modo manual não significa "sem chamado": ele será usado quando existir um chamado simples que não utiliza o formulário estruturado de criação de usuário.
+23. No modo manual, o número do chamado permanece obrigatório; apenas os dados do colaborador serão preenchidos manualmente.
