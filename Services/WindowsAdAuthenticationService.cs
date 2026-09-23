@@ -1,53 +1,90 @@
 using System.DirectoryServices.AccountManagement;
-using System.DirectoryServices.ActiveDirectory;
 using System.Runtime.Versioning;
 
 namespace Automind.CadastroColaboradores.Services;
 
-// Somente autenticação e consulta do grupo de acesso. Nenhuma operação de escrita.
+// Somente autenticação e consulta de grupo. Nenhuma escrita no AD.
 [SupportedOSPlatform("windows")]
-public sealed class WindowsAdAuthenticationService(IConfiguration configuration) : IAdAuthenticationService
+public sealed class WindowsAdAuthenticationService(
+    IConfiguration configuration) : IAdAuthenticationService
 {
-    private string GetDomainName()
-    {
-        var configured = configuration["Automind:Ad:Domain"];
-        if (!string.IsNullOrWhiteSpace(configured)) return configured.Trim();
-        using var domain = Domain.GetComputerDomain();
-        return domain.Name;
-    }
-
-    public Task<bool> AuthenticateAsync(string usuario, string senha, CancellationToken cancellationToken = default)
+    public Task<bool> AuthenticateAsync(
+        string usuario,
+        string senha,
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (string.IsNullOrWhiteSpace(usuario) || string.IsNullOrWhiteSpace(senha)) return Task.FromResult(false);
-        var login = usuario.Trim();
-        // ValidateCredentials espera sAMAccountName, e não domínio\usuário ou UPN.
-        if (login.IndexOfAny(['\\', '@']) >= 0) return Task.FromResult(false);
-        using var context = new PrincipalContext(ContextType.Domain, GetDomainName(), null,
-            ContextOptions.Negotiate | ContextOptions.Signing | ContextOptions.Sealing);
-        if (!context.ValidateCredentials(login, senha, ContextOptions.Negotiate | ContextOptions.Signing | ContextOptions.Sealing))
+
+        var login = NormalizeLogin(usuario);
+
+        if (string.IsNullOrWhiteSpace(login) ||
+            string.IsNullOrWhiteSpace(senha))
+        {
             return Task.FromResult(false);
+        }
+
+        var configuredServer = configuration["Automind:Ad:Server"];
+        var server = string.IsNullOrWhiteSpace(configuredServer)
+            ? "10.1.2.1"
+            : configuredServer.Trim();
+
+        // Mesmo padrão de conexão utilizado no AutomindTermos.
+        using var context = new PrincipalContext(
+            ContextType.Domain,
+            server);
+
+        if (!context.ValidateCredentials(
+                login,
+                senha,
+                ContextOptions.Negotiate))
+        {
+            return Task.FromResult(false);
+        }
 
         cancellationToken.ThrowIfCancellationRequested();
-        // As consultas usam a identidade do pool/servidor; senha do operador não é persistida.
-        using var user = UserPrincipal.FindByIdentity(context, IdentityType.SamAccountName, login);
-        if (user is null || user.Enabled != true || user.IsAccountLockedOut()) return Task.FromResult(false);
-        if (user.AccountExpirationDate is DateTime expires && expires.ToUniversalTime() <= DateTime.UtcNow)
+
+        using var user = UserPrincipal.FindByIdentity(
+            context,
+            IdentityType.SamAccountName,
+            login);
+
+        if (user is null || user.Enabled != true)
+        {
             return Task.FromResult(false);
+        }
 
         var configuredGroup = configuration["Automind:Ad:AuthorizedGroup"];
-        var groupName = string.IsNullOrWhiteSpace(configuredGroup) ? "_informatica" : configuredGroup.Trim();
-        using var allowed = GroupPrincipal.FindByIdentity(context, IdentityType.SamAccountName, groupName);
-        if (allowed?.Sid is null) return Task.FromResult(false);
-        using var groups = user.GetAuthorizationGroups();
-        foreach (var group in groups)
+        var groupName = string.IsNullOrWhiteSpace(configuredGroup)
+            ? "_informatica"
+            : configuredGroup.Trim();
+
+        using var group = GroupPrincipal.FindByIdentity(
+            context,
+            IdentityType.SamAccountName,
+            groupName);
+
+        if (group is null)
         {
-            using (group)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (allowed.Sid.Equals(group.Sid)) return Task.FromResult(true);
-            }
+            return Task.FromResult(false);
         }
-        return Task.FromResult(false);
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        // Mesmo método usado pelo Termos para consultar associação ao grupo.
+        // Aqui a associação é obrigatória para entrar no Cadastro.
+        return Task.FromResult(user.IsMemberOf(group));
+    }
+
+    private static string NormalizeLogin(string usuario)
+    {
+        var login = (usuario ?? string.Empty).Trim();
+
+        if (login.Contains('\\'))
+            login = login[(login.LastIndexOf('\\') + 1)..];
+
+        if (login.Contains('@'))
+            login = login[..login.IndexOf('@')];
+
+        return login.Trim();
     }
 }
