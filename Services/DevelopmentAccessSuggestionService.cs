@@ -2,18 +2,16 @@ using Automind.CadastroColaboradores.Models;
 
 namespace Automind.CadastroColaboradores.Services;
 
-// MOCK: depois sera substituido por leitura real do AD.
+// Fallback de desenvolvimento. Nao e registrado no Program.cs na configuracao atual.
+// Mantido para que workspaces antigos que ainda possuam o arquivo compilem sem reintroduzir grupos ficticios.
 public sealed class DevelopmentAccessSuggestionService : IAccessSuggestionService
 {
-    public Task<IReadOnlyList<GroupSuggestion>> SuggestAsync(string? cargo, string? departamento, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<GroupSuggestion>> SuggestAsync(
+        string? cargo,
+        string? departamento,
+        CancellationToken cancellationToken = default)
     {
-        IReadOnlyList<GroupSuggestion> result = [
-            new() { Nome = "GG_Colaboradores", EncontradoEm = 4, TotalComparados = 4, Selecionado = true },
-            new() { Nome = "GG_Engenharia", EncontradoEm = 4, TotalComparados = 4, Selecionado = true },
-            new() { Nome = "VPN_Usuarios", EncontradoEm = 4, TotalComparados = 4, Selecionado = true },
-            new() { Nome = "Projeto_Temporario", EncontradoEm = 1, TotalComparados = 4, Selecionado = false },
-            new() { Nome = "Domain Admins", EncontradoEm = 1, TotalComparados = 4, Selecionado = false, Protegido = true }
-        ];
-        return Task.FromResult(result);
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult<IReadOnlyList<GroupSuggestion>>([]);
     }
 }

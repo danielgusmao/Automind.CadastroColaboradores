@@ -177,3 +177,10 @@ Publicar esta entrega na branch `release` e repetir o chamado `I2609-0295` contr
 ## Nome dos pacotes entregues
 
 Enquanto a entrega for somente documental/checkpoint, usar `Automind.CadastroColaboradores-AAAA-MM-DD-checkpoint-vX.Y.Z.zip`. Para esta entrega de projeto completo, nao criar tag nem versionamento numerico de Git: o checkpoint acompanha o projeto e a branch `release` recebe apenas um commit. O versionamento interno `CHECKPOINT-VNNN` permanece para o historico documental.
+
+15. `Checkpoints/CHECKPOINT-V015-CORRECAO-BUILD-SERVICOS-DEVELOPMENT.md` **(corrente)**
+   - corrigidos os arquivos residuais `DevelopmentAdReadOnlyService.cs` e `DevelopmentAccessSuggestionService.cs` para clones/workspaces onde eles ainda existem;
+   - `DevelopmentAdReadOnlyService` agora implementa todo o contrato atual de `IAdReadOnlyService`;
+   - fallbacks de desenvolvimento retornam estado seguro/vazio e nao reintroduzem OU/grupos ficticios;
+   - `Program.cs` continua usando somente os servicos Windows reais;
+   - nenhuma escrita no AD foi adicionada.

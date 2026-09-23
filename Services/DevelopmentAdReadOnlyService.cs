@@ -1,32 +1,70 @@
+using Automind.CadastroColaboradores.Models;
+
 namespace Automind.CadastroColaboradores.Services;
 
-// MOCK DE DESENVOLVIMENTO. Nao consulta nem modifica o AD real.
+// Fallback de desenvolvimento. Nao e registrado no Program.cs na configuracao atual.
+// Mantido apenas para compatibilidade com clones/workspaces que ainda possuam este arquivo.
+// Todos os retornos falham de forma segura e nunca simulam sucesso de escrita/leitura real do AD.
 public sealed class DevelopmentAdReadOnlyService : IAdReadOnlyService
 {
-    public Task<bool> ValidateCredentialsAsync(string usuario, string senha, CancellationToken cancellationToken = default)
-        => Task.FromResult(!string.IsNullOrWhiteSpace(usuario) && !string.IsNullOrWhiteSpace(senha));
+    public Task<IReadOnlyList<OrganizationalUnitOption>> GetOrganizationalUnitsAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult<IReadOnlyList<OrganizationalUnitOption>>([]);
+    }
 
-    public Task<bool> IsAuthorizedAsync(string usuario, CancellationToken cancellationToken = default)
-        => Task.FromResult(true);
+    public Task<AdIdentityAvailability> CheckIdentityAvailabilityAsync(
+        string login,
+        string email,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(new AdIdentityAvailability
+        {
+            LoginAvailable = false,
+            UpnAvailable = false,
+            EmailAvailable = false,
+            Collisions = ["Servico de desenvolvimento sem consulta real ao Active Directory."]
+        });
+    }
 
-    public Task<IReadOnlyList<string>> GetOrganizationalUnitsAsync(CancellationToken cancellationToken = default)
-        => Task.FromResult<IReadOnlyList<string>>([
-            "03.UDN/Engenharia",
-            "03.UDN/GEAUT",
-            "03.UDN/GELOG",
-            "03.UDN/GEMED",
-            "03.UDN/GETEC",
-            "03.UDN/Inovacao",
-            "03.UDN/Suporte",
-            "03.UDN/T&S",
-            "03.UDN/Tecnologia",
-            "04.UDA/ADM",
-            "04.UDA/Backoffice",
-            "04.UDA/Financeiro",
-            "04.UDA/GSTI",
-            "04.UDA/Pessoas",
-            "04.UDA/SGI",
-            "04.UDA/SGSI",
-            "05.Terceiros-Ext"
-        ]);
+    public Task<AdCommonNameAvailability> CheckCommonNameAvailabilityAsync(
+        string commonName,
+        string organizationalUnitDistinguishedName,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(new AdCommonNameAvailability { Available = false });
+    }
+
+    public Task<AdUserResolution> ResolveUserAsync(string value, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(new AdUserResolution());
+    }
+
+    public Task<AdOuValidation> ValidateOrganizationalUnitAsync(
+        string distinguishedName,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(new AdOuValidation { Exists = false, Allowed = false });
+    }
+
+    public Task<AdGroupValidation> ValidateGroupsAsync(
+        IEnumerable<string> distinguishedNames,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var requested = distinguishedNames
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return Task.FromResult(new AdGroupValidation
+        {
+            AllExist = false,
+            MissingGroups = requested
+        });
+    }
 }
