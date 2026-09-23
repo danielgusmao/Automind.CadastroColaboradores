@@ -1,10 +1,12 @@
 @{ ViewData["Title"] = "Administração"; }
 <div class="page-header"><div><span class="eyebrow">Configuração</span><h1>Administração</h1></div></div>
 <div class="grid-cards">
-<div class="card"><h2>TOPdesk</h2><p>Extensao Automind TOPdesk Bridge + sessao SAML do operador. Somente leitura nesta fase.</p></div>
-<div class="card"><h2>Teams</h2><p>Destinatários padrão + superior imediato. Envio ainda não habilitado.</p></div>
-<div class="card"><h2>Cargos</h2><p>Traduções PT-BR → EN aprovadas.</p></div>
-<div class="card"><h2>Grupos protegidos</h2><p>Nunca copiar automaticamente grupos privilegiados.</p></div>
-<div class="card"><h2>Microsoft 365</h2><p>Consultar SKUs e disponibilidade antes de qualquer atribuição.</p></div>
-<div class="card"><h2>Banco de dados</h2><p>SQL Server ainda não definido/instalado.</p></div>
+<div class="card"><h2>Active Directory</h2><p>Leitura real habilitada para OUs, usuários, superior imediato, disponibilidade de identidade e grupos. Escrita permanece bloqueada.</p></div>
+<div class="card"><h2>OUs permitidas</h2><p>A lista é consultada diretamente no AD e filtrada pelos DistinguishedNames em <code>Automind:Ad:AllowedOuDns</code>.</p></div>
+<div class="card"><h2>TOPdesk</h2><p>Extensão Automind TOPdesk Bridge + sessão SAML do operador. Importação validada; nenhuma credencial TOPdesk é persistida.</p></div>
+<div class="card"><h2>Cargos</h2><p>Traduções PT-BR → EN aprovadas são lidas de <code>Automind:JobTitleTranslations</code>.</p></div>
+<div class="card"><h2>Grupos protegidos</h2><p>Grupos privilegiados, críticos ou com ancestral protegido nunca são pré-selecionados automaticamente.</p></div>
+<div class="card"><h2>Microsoft 365</h2><p>Etapa pausada. Licenças não participam da pré-validação atual do Active Directory.</p></div>
+<div class="card"><h2>Criação no AD</h2><p><strong>Desabilitada nesta entrega.</strong> Não existe chamada a New-ADUser, definição de senha ou Add-ADGroupMember.</p></div>
+<div class="card"><h2>Banco de dados</h2><p>SQL Server ainda não definido/instalado para o histórico definitivo.</p></div>
 </div>

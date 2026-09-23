@@ -33,7 +33,7 @@
                 <img class="login-mobile-logo" src="~/images/automind-logo-positive.png" alt="Automind" />
                 <span class="eyebrow">ACESSO RESTRITO</span>
                 <h2>Entre com sua conta Automind</h2>
-                <p class="login-subtitle">O acesso será validado pelo Active Directory e restrito à equipe autorizada.</p>
+                <p class="login-subtitle">O acesso é validado pelo Active Directory e restrito ao grupo autorizado.</p>
 
                 <form asp-action="Login" method="post" class="form-stack">
                     @Html.AntiForgeryToken()
@@ -62,7 +62,7 @@
 
                 <div class="security-note">
                     <span class="status-dot status-dot-safe"></span>
-                    <p><strong>Credenciais não são armazenadas.</strong><br />Nesta fase a autenticação ainda utiliza o serviço de desenvolvimento já existente no projeto.</p>
+                    <p><strong>Credenciais não são armazenadas.</strong><br />Autenticação AD real. Use apenas seu login, como daniel.gusmao, sem domínio ou e-mail.</p>
                 </div>
             </div>
         </section>

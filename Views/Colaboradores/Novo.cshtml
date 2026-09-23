@@ -1,7 +1,13 @@
 @model CollaboratorFormViewModel
+@using Automind.CadastroColaboradores.Models
 @{
     ViewData["Title"] = "Novo colaborador";
-    var ous = ViewBag.Ous as IReadOnlyList<string> ?? [];
+    var ous = ViewBag.Ous as IReadOnlyList<OrganizationalUnitOption> ?? [];
+    var adReadError = ViewBag.AdReadError as string;
+    var adGroupError = ViewBag.AdGroupError as string;
+    var commonCount = Model.GruposSugeridos.Count(g => !g.Protegido && g.EncontradoEm == g.TotalComparados);
+    var exceptionCount = Model.GruposSugeridos.Count(g => !g.Protegido && g.EncontradoEm != g.TotalComparados);
+    var protectedCount = Model.GruposSugeridos.Count(g => g.Protegido);
 }
 
 <div class="app-container content-stack page-enter">
@@ -9,24 +15,33 @@
         <div>
             <span class="eyebrow">PROVISIONAMENTO</span>
             <h1>Novo colaborador</h1>
-            <p>Revise os dados, valide o ambiente e confirme os acessos antes de qualquer operação futura.</p>
+            <p>Revise os dados, consulte o Active Directory e valide a prévia antes de qualquer operação de escrita futura.</p>
         </div>
-        <span class="badge-readonly">FASE 1 · SOMENTE LEITURA</span>
+        <span class="badge-readonly">AD REAL · SOMENTE LEITURA</span>
     </section>
 
     <div class="safe-banner">
         <div class="safe-banner-icon">✓</div>
         <div>
-            <strong>Ambiente protegido contra alterações.</strong>
-            <span>Esta tela não cria usuários, não altera grupos, não redefine senhas e não atribui licenças.</span>
+            <strong>Consultas reais ao Active Directory; escrita bloqueada.</strong>
+            <span>Esta entrega lista OUs, valida identidade/superior/grupos e calcula perfis reais, mas não executa New-ADUser, senha ou inclusão em grupos.</span>
         </div>
     </div>
+
+    @if (!string.IsNullOrWhiteSpace(adReadError))
+    {
+        <div class="topdesk-import-status is-error">@adReadError</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(adGroupError))
+    {
+        <div class="topdesk-import-status is-error">@adGroupError</div>
+    }
 
     <section class="panel source-panel">
         <div class="source-copy">
             <span class="eyebrow">ORIGEM DA SOLICITAÇÃO</span>
             <h2>Chamado TOPdesk</h2>
-            <p>Todo cadastro deve estar vinculado a um chamado. Se for o formulário estruturado, importe os dados; se for um chamado simples, informe o número e preencha os campos manualmente.</p>
+            <p>Todo cadastro deve estar vinculado a um chamado. Para o formulário estruturado, importe os dados pela extensão Automind TOPdesk Bridge.</p>
         </div>
         <form class="source-controls" method="post" data-topdesk-import data-import-url='@Url.Action("ImportarTopdesk", "Colaboradores")'>
             @Html.AntiForgeryToken()
@@ -50,18 +65,25 @@
         <div class="topdesk-import-status" data-topdesk-status hidden></div>
     </section>
 
-    <form class="provisioning-grid">
+    <form class="provisioning-grid"
+          data-provisioning-form
+          data-groups-url='@Url.Action("BuscarGrupos", "Colaboradores")'
+          data-validation-url='@Url.Action("ValidarAd", "Colaboradores")'>
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="PerfilUsuario" value="@Model.PerfilUsuario" />
+        <input type="hidden" name="GrupoTrabalho" value="@Model.GrupoTrabalho" />
+
         <section class="panel form-section">
             <div class="section-title-row">
                 <div class="section-number">01</div>
                 <div><span class="eyebrow">IDENTIFICAÇÃO</span><h2>Dados do colaborador</h2></div>
             </div>
 
-            <div class="field"><label>Nome completo</label><input value="@Model.NomeCompleto" /></div>
-            <div class="field"><label>Nome de guerra <small>exatamente 2 nomes</small></label><input value="@Model.NomeGuerra" /></div>
+            <div class="field"><label>Nome completo</label><input name="NomeCompleto" value="@Model.NomeCompleto" /></div>
+            <div class="field"><label>Nome de guerra <small>exatamente 2 nomes</small></label><input name="NomeGuerra" value="@Model.NomeGuerra" /></div>
             <div class="form-row-2">
-                <div class="field"><label>Login</label><input value="@Model.Login" /></div>
-                <div class="field"><label>E-mail corporativo</label><input value="@Model.Email" /></div>
+                <div class="field"><label>Login</label><input name="Login" value="@Model.Login" /></div>
+                <div class="field"><label>E-mail corporativo</label><input name="Email" value="@Model.Email" /></div>
             </div>
             <div class="form-row-2">
                 <div class="field">
@@ -74,12 +96,12 @@
                            maxlength="16"
                            placeholder="(71) 9 8169-6721" />
                 </div>
-                <div class="field"><label>Local de trabalho</label><input value="@Model.LocalTrabalho" /></div>
+                <div class="field"><label>Local de trabalho</label><input name="LocalTrabalho" value="@Model.LocalTrabalho" /></div>
             </div>
             <label class="toggle-line">
-                <input type="checkbox" checked="@Model.DivulgarContato" />
+                <input name="DivulgarContato" type="checkbox" checked="@Model.DivulgarContato" />
                 <span class="toggle-ui"></span>
-                <span><strong>Divulgar contato na intranet</strong><small>O telefone só será considerado para publicação quando esta opção estiver ativa.</small></span>
+                <span><strong>Divulgar contato na intranet</strong><small>O telefone só entrará na prévia do AD quando esta opção estiver ativa.</small></span>
             </label>
         </section>
 
@@ -89,23 +111,23 @@
                 <div><span class="eyebrow">ORGANIZAÇÃO</span><h2>Cargo e estrutura</h2></div>
             </div>
 
-            <div class="field"><label>Cargo em português</label><input value="@Model.CargoPortugues" /></div>
-            <div class="field"><label>Cargo em inglês</label><input value="@Model.CargoIngles" /></div>
+            <div class="field"><label>Cargo em português</label><input name="CargoPortugues" value="@Model.CargoPortugues" /></div>
+            <div class="field"><label>Cargo em inglês</label><input name="CargoIngles" value="@Model.CargoIngles" /></div>
             <div class="form-row-2">
-                <div class="field"><label>Departamento</label><input value="@Model.Departamento" /></div>
-                <div class="field"><label>Empresa</label><input value="Automind" readonly /></div>
+                <div class="field"><label>Departamento</label><input name="Departamento" value="@Model.Departamento" /></div>
+                <div class="field"><label>Empresa</label><input name="Empresa" value="Automind" readonly /></div>
             </div>
-            <div class="field"><label>Superior imediato</label><input value="@Model.SuperiorImediato" /></div>
+            <div class="field"><label>Superior imediato</label><input name="SuperiorImediato" value="@Model.SuperiorImediato" /></div>
             <div class="field">
                 <label>OU de destino</label>
-                <select>
+                <select name="OuDistinguishedName">
                     <option value="">Selecione uma OU...</option>
                     @foreach (var ou in ous)
                     {
-                        <option>@ou</option>
+                        <option value="@ou.DistinguishedName" selected="@(string.Equals(Model.OuSelecionada, ou.DistinguishedName, StringComparison.OrdinalIgnoreCase))">@ou.DisplayName</option>
                     }
                 </select>
-                <small class="field-help">A lista definitiva será lida diretamente do Active Directory.</small>
+                <small class="field-help">Opções consultadas no AD real e filtradas pela allowlist configurada por DistinguishedName.</small>
             </div>
         </section>
 
@@ -114,78 +136,109 @@
                 <div>
                     <span class="eyebrow">03 · ACESSOS</span>
                     <h2>Sugestão automática pelo cargo</h2>
-                    <p>Comparamos colaboradores ativos com o mesmo cargo/departamento e destacamos o que é comum a todos.</p>
+                    <p>A aplicação consulta usuários ativos com o mesmo cargo + departamento e calcula a frequência dos grupos diretos <code>memberOf</code>.</p>
                 </div>
                 <div class="access-tools">
-                    <button type="button" class="btn btn-secondary">Buscar grupos</button>
-                    <button type="button" class="btn btn-secondary">Usar colaborador de referência</button>
+                    <button type="button" class="btn btn-secondary" data-search-groups>Buscar grupos no AD</button>
+                    <button type="button" class="btn btn-secondary" disabled title="A busca por colaborador de referência será habilitada em etapa posterior.">Colaborador de referência</button>
                 </div>
             </div>
 
-            @if (Model.GruposSugeridos.Count == 0)
-            {
-                <div class="empty-state">
-                    <span class="empty-state-icon">◎</span>
-                    <div><strong>Nenhuma sugestão carregada</strong><p>Carregue um chamado ou informe cargo e departamento para iniciar a comparação.</p></div>
-                </div>
-            }
-            else
-            {
-                <div class="access-summary">
-                    <div><strong>@Model.GruposSugeridos.Count(g => !g.Protegido && g.EncontradoEm == g.TotalComparados)</strong><span>comuns ao cargo</span></div>
-                    <div><strong>@Model.GruposSugeridos.Count(g => !g.Protegido && g.EncontradoEm != g.TotalComparados)</strong><span>exceções encontradas</span></div>
-                    <div><strong>@Model.GruposSugeridos.Count(g => g.Protegido)</strong><span>grupos protegidos</span></div>
-                </div>
-                <div class="table-wrap">
-                    <table class="access-table">
-                        <thead><tr><th></th><th>Grupo</th><th>Incidência</th><th>Classificação</th></tr></thead>
-                        <tbody>
-                        @foreach (var g in Model.GruposSugeridos)
-                        {
-                            var comum = !g.Protegido && g.EncontradoEm == g.TotalComparados;
-                            <tr class="@(g.Protegido ? "row-protected" : comum ? "row-common" : "")">
-                                <td><input type="checkbox" checked="@g.Selecionado" disabled="@g.Protegido" /></td>
-                                <td><strong>@g.Nome</strong></td>
-                                <td><span class="incidence">@g.EncontradoEm / @g.TotalComparados</span></td>
-                                <td>
-                                    @if (g.Protegido)
-                                    {
-                                        <span class="status-pill status-pill-danger">Protegido</span>
-                                    }
-                                    else if (comum)
-                                    {
-                                        <span class="status-pill status-pill-success">Comum ao cargo</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="status-pill">Exceção</span>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                        </tbody>
-                    </table>
-                </div>
-            }
+            <div class="empty-state" data-groups-empty hidden="@(Model.GruposSugeridos.Count > 0)">
+                <span class="empty-state-icon">◎</span>
+                <div><strong>Nenhuma sugestão carregada</strong><p>Informe cargo em inglês e departamento e clique em Buscar grupos no AD.</p></div>
+            </div>
+
+            <div class="access-summary" data-groups-summary hidden="@(Model.GruposSugeridos.Count == 0)">
+                <div><strong data-common-count>@commonCount</strong><span>comuns ao cargo</span></div>
+                <div><strong data-exception-count>@exceptionCount</strong><span>exceções encontradas</span></div>
+                <div><strong data-protected-count>@protectedCount</strong><span>grupos protegidos</span></div>
+            </div>
+            <div class="table-wrap" data-groups-table hidden="@(Model.GruposSugeridos.Count == 0)">
+                <table class="access-table">
+                    <thead><tr><th></th><th>Grupo</th><th>Incidência</th><th>Classificação</th></tr></thead>
+                    <tbody data-groups-body>
+                    @foreach (var g in Model.GruposSugeridos)
+                    {
+                        var comum = !g.Protegido && g.EncontradoEm == g.TotalComparados;
+                        <tr class="@(g.Protegido ? "row-protected" : comum ? "row-common" : "")">
+                            <td><input class="group-checkbox" type="checkbox" value="@g.DistinguishedName" checked="@g.Selecionado" disabled="@g.Protegido" /></td>
+                            <td>
+                                <strong>@g.Nome</strong>
+                                <small class="group-meta">@g.Categoria · @g.Escopo</small>
+                                @if (g.EfeitosIndiretos.Count > 0)
+                                {
+                                    <small class="group-indirect">Acesso indireto: @string.Join(", ", g.EfeitosIndiretos)</small>
+                                }
+                            </td>
+                            <td><span class="incidence">@g.EncontradoEm / @g.TotalComparados</span></td>
+                            <td>
+                                @if (g.Protegido)
+                                {
+                                    <span class="status-pill status-pill-danger">Protegido</span>
+                                }
+                                else if (comum)
+                                {
+                                    <span class="status-pill status-pill-success">Comum ao cargo</span>
+                                }
+                                else
+                                {
+                                    <span class="status-pill">Exceção</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="topdesk-import-status" data-groups-status hidden></div>
         </section>
 
         <section class="panel validation-panel span-full">
             <div class="validation-copy">
                 <span class="eyebrow">04 · PRÉ-VALIDAÇÃO</span>
-                <h2>Validar antes de criar</h2>
-                <p>O botão abaixo será usado apenas para consultas e checagens enquanto a escrita permanecer bloqueada.</p>
+                <h2>Validar no AD</h2>
+                <p>Consulta disponibilidade de identidade, superior, OU e grupos. Microsoft 365 está pausado e não participa desta validação.</p>
             </div>
             <div class="validation-checks">
-                <span>○ Login disponível</span>
-                <span>○ UPN / e-mail disponível</span>
-                <span>○ Superior localizado</span>
-                <span>○ OU válida</span>
-                <span>○ Grupos existentes</span>
-                <span>○ Licenças M365 disponíveis</span>
+                <span data-ad-check="login">○ Login válido e disponível</span>
+                <span data-ad-check="cn">○ CN disponível na OU</span>
+                <span data-ad-check="upn">○ UPN disponível</span>
+                <span data-ad-check="email">○ E-mail / SMTP disponível</span>
+                <span data-ad-check="manager">○ Superior localizado</span>
+                <span data-ad-check="ou">○ OU válida</span>
+                <span data-ad-check="groups">○ Grupos existentes</span>
             </div>
             <div class="validation-actions">
-                <button type="button" class="btn btn-primary btn-wide">Validar no AD <small>somente leitura</small></button>
+                <button type="button" class="btn btn-primary btn-wide" data-validate-ad>Validar no AD <small>somente leitura</small></button>
             </div>
+            <div class="topdesk-import-status validation-status" data-validation-status hidden></div>
+        </section>
+
+        <section class="panel span-full ad-preview" data-ad-preview hidden>
+            <div class="section-title-row">
+                <div class="section-number">05</div>
+                <div><span class="eyebrow">PRÉVIA</span><h2>Objeto que seria criado no AD</h2></div>
+            </div>
+            <p class="preview-warning"><strong>Nenhuma escrita é executada nesta versão.</strong> A prévia existe para conferência antes de uma autorização futura.</p>
+            <dl class="preview-grid">
+                <div><dt>CN</dt><dd data-preview="cn"></dd></div>
+                <div><dt>sAMAccountName</dt><dd data-preview="samAccountName"></dd></div>
+                <div><dt>givenName</dt><dd data-preview="givenName"></dd></div>
+                <div><dt>sn</dt><dd data-preview="surname"></dd></div>
+                <div><dt>UPN</dt><dd data-preview="userPrincipalName"></dd></div>
+                <div><dt>mail</dt><dd data-preview="mail"></dd></div>
+                <div><dt>Primary SMTP</dt><dd data-preview="primarySmtp"></dd></div>
+                <div><dt>Secondary SMTP</dt><dd data-preview="secondarySmtp"></dd></div>
+                <div><dt>Title</dt><dd data-preview="title"></dd></div>
+                <div><dt>Department</dt><dd data-preview="department"></dd></div>
+                <div><dt>Company</dt><dd data-preview="company"></dd></div>
+                <div><dt>Office</dt><dd data-preview="office"></dd></div>
+                <div><dt>Telephone</dt><dd data-preview="telephoneNumber"></dd></div>
+                <div class="preview-wide"><dt>Manager DN</dt><dd data-preview="managerDistinguishedName"></dd></div>
+                <div class="preview-wide"><dt>OU DN</dt><dd data-preview="ouDistinguishedName"></dd></div>
+                <div class="preview-wide"><dt>Grupos selecionados</dt><dd data-preview="groups"></dd></div>
+            </dl>
         </section>
     </form>
 </div>

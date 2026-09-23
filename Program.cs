@@ -15,9 +15,16 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
-// Autenticação real no AD; consultas de cadastro continuam como estavam nesta entrega.
-if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("O login AD requer o servidor IIS Windows.");
+if (!OperatingSystem.IsWindows())
+    throw new PlatformNotSupportedException("As integracoes com Active Directory requerem o servidor IIS Windows.");
+
 builder.Services.AddSingleton<IAdAuthenticationService, WindowsAdAuthenticationService>();
+builder.Services.AddSingleton<AdConnectionFactory>();
+builder.Services.AddSingleton<IAdReadOnlyService, WindowsAdReadOnlyService>();
+builder.Services.AddSingleton<IAccessSuggestionService, WindowsAccessSuggestionService>();
+builder.Services.AddSingleton<IJobTitleTranslationService, ConfigurationJobTitleTranslationService>();
+builder.Services.AddSingleton<ITopdeskRequestParser, TopdeskRequestParser>();
+
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(options =>
 {
     options.Cookie.Name = "Automind.Cadastro.LoginAD";
@@ -36,13 +43,13 @@ builder.Services.AddRateLimiter(options =>
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.AddPolicy("ad-login", context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        }));
 });
-
-// Nenhuma escrita no AD, TOPdesk, Entra ou Teams.
-builder.Services.AddSingleton<IAdReadOnlyService, DevelopmentAdReadOnlyService>();
-builder.Services.AddSingleton<ITopdeskRequestParser, TopdeskRequestParser>();
-builder.Services.AddSingleton<IAccessSuggestionService, DevelopmentAccessSuggestionService>();
 
 var app = builder.Build();
 

@@ -35,8 +35,12 @@ public sealed class CollaboratorFormViewModel
 public sealed class GroupSuggestion
 {
     public string Nome { get; set; } = string.Empty;
+    public string DistinguishedName { get; set; } = string.Empty;
     public int EncontradoEm { get; set; }
     public int TotalComparados { get; set; }
     public bool Selecionado { get; set; }
     public bool Protegido { get; set; }
+    public string Categoria { get; set; } = string.Empty;
+    public string Escopo { get; set; } = string.Empty;
+    public List<string> EfeitosIndiretos { get; set; } = [];
 }

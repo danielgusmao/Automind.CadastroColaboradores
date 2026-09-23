@@ -34,3 +34,14 @@
 
 22. Todo cadastro de colaborador deve estar vinculado a um chamado TOPdesk. O modo manual não significa "sem chamado": ele será usado quando existir um chamado simples que não utiliza o formulário estruturado de criação de usuário.
 23. No modo manual, o número do chamado permanece obrigatório; apenas os dados do colaborador serão preenchidos manualmente.
+
+## Decisões de implementação em 23/09/2026 - leitura real do AD
+
+24. Após os testes de leitura no AD, foi autorizado substituir os mocks da tela por consultas reais no sistema.
+25. Microsoft 365/Entra permanece pausado; licença não deve bloquear a fase atual.
+26. A lista de OUs deve ser consultada diretamente do AD e filtrada por uma allowlist de DistinguishedNames configurável.
+27. O botão `Validar no AD` deve executar somente consultas reais e nunca escrever no diretório.
+28. A sugestão de grupos deve usar `Title + Department`, grupos diretos `memberOf`, incidência na coorte e proteção de grupos privilegiados.
+29. Efeitos indiretos de grupos de segurança devem ser exibidos quando existirem.
+30. Esta entrega completa continua sem `New-ADUser`, senha ou inclusão em grupos; a implementação/ativação de escrita exige autorização específica posterior.
+31. Branch continua `release`, sem tag/versionamento numérico nesta fase; publicação por commit e push nos remotes existentes.
