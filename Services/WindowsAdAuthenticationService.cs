@@ -3,10 +3,9 @@ using System.Runtime.Versioning;
 
 namespace Automind.CadastroColaboradores.Services;
 
-// Somente autenticação e consulta de grupo. Nenhuma escrita no AD.
+// Autenticação e consulta de autorização. Nenhuma escrita no AD.
 [SupportedOSPlatform("windows")]
-public sealed class WindowsAdAuthenticationService(
-    IConfiguration configuration) : IAdAuthenticationService
+public sealed class WindowsAdAuthenticationService(IConfiguration configuration) : IAdAuthenticationService
 {
     public Task<bool> AuthenticateAsync(
         string usuario,
@@ -16,75 +15,55 @@ public sealed class WindowsAdAuthenticationService(
         cancellationToken.ThrowIfCancellationRequested();
 
         var login = NormalizeLogin(usuario);
-
-        if (string.IsNullOrWhiteSpace(login) ||
-            string.IsNullOrWhiteSpace(senha))
-        {
+        if (string.IsNullOrWhiteSpace(login) || string.IsNullOrWhiteSpace(senha))
             return Task.FromResult(false);
-        }
 
+        using var context = CreateContext();
+        if (!context.ValidateCredentials(login, senha, ContextOptions.Negotiate))
+            return Task.FromResult(false);
+
+        return Task.FromResult(IsAuthorized(context, login, cancellationToken));
+    }
+
+    public Task<bool> IsAuthorizedAsync(string usuario, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var login = NormalizeLogin(usuario);
+        if (string.IsNullOrWhiteSpace(login)) return Task.FromResult(false);
+
+        using var context = CreateContext();
+        return Task.FromResult(IsAuthorized(context, login, cancellationToken));
+    }
+
+    private PrincipalContext CreateContext()
+    {
         var configuredServer = configuration["Automind:Ad:Server"];
-        var server = string.IsNullOrWhiteSpace(configuredServer)
-            ? "10.1.2.1"
-            : configuredServer.Trim();
+        var server = string.IsNullOrWhiteSpace(configuredServer) ? "10.1.2.1" : configuredServer.Trim();
+        return new PrincipalContext(ContextType.Domain, server);
+    }
 
-        // Mesmo padrão de conexão utilizado no AutomindTermos.
-        using var context = new PrincipalContext(
-            ContextType.Domain,
-            server);
-
-        if (!context.ValidateCredentials(
-                login,
-                senha,
-                ContextOptions.Negotiate))
-        {
-            return Task.FromResult(false);
-        }
-
+    private bool IsAuthorized(PrincipalContext context, string login, CancellationToken cancellationToken)
+    {
         cancellationToken.ThrowIfCancellationRequested();
 
-        using var user = UserPrincipal.FindByIdentity(
-            context,
-            IdentityType.SamAccountName,
-            login);
-
-        if (user is null || user.Enabled != true)
-        {
-            return Task.FromResult(false);
-        }
+        using var user = UserPrincipal.FindByIdentity(context, IdentityType.SamAccountName, login);
+        if (user is null || user.Enabled != true) return false;
 
         var configuredGroup = configuration["Automind:Ad:AuthorizedGroup"];
-        var groupName = string.IsNullOrWhiteSpace(configuredGroup)
-            ? "_informatica"
-            : configuredGroup.Trim();
+        var groupName = string.IsNullOrWhiteSpace(configuredGroup) ? "_informatica" : configuredGroup.Trim();
 
-        using var group = GroupPrincipal.FindByIdentity(
-            context,
-            IdentityType.SamAccountName,
-            groupName);
-
-        if (group is null)
-        {
-            return Task.FromResult(false);
-        }
+        using var group = GroupPrincipal.FindByIdentity(context, IdentityType.SamAccountName, groupName);
+        if (group is null) return false;
 
         cancellationToken.ThrowIfCancellationRequested();
-
-        // Mesmo método usado pelo Termos para consultar associação ao grupo.
-        // Aqui a associação é obrigatória para entrar no Cadastro.
-        return Task.FromResult(user.IsMemberOf(group));
+        return user.IsMemberOf(group);
     }
 
     private static string NormalizeLogin(string usuario)
     {
         var login = (usuario ?? string.Empty).Trim();
-
-        if (login.Contains('\\'))
-            login = login[(login.LastIndexOf('\\') + 1)..];
-
-        if (login.Contains('@'))
-            login = login[..login.IndexOf('@')];
-
+        if (login.Contains('\\')) login = login[(login.LastIndexOf('\\') + 1)..];
+        if (login.Contains('@')) login = login[..login.IndexOf('@')];
         return login.Trim();
     }
 }

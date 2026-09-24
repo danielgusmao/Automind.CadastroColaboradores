@@ -9,22 +9,16 @@ public sealed class AdConnectionFactory(IConfiguration configuration)
     public string PeopleSearchBaseDn => GetValue("Automind:Ad:PeopleSearchBase", $"OU=Automind,{DomainBaseDn}");
     public string EmailDomain => GetValue("Automind:EmailDomain", "automind.com.br");
     public string PrimarySmtpDomain => GetValue("Automind:PrimarySmtpDomain", "automind.co");
+    public string Mode => GetValue("Automind:Mode", "ReadOnly");
+    public bool IsPilotWriteEnabled => string.Equals(Mode, "PilotWrite", StringComparison.OrdinalIgnoreCase);
+    public string ExpectedTechnicalIdentity => GetValue("Automind:Provisioning:TechnicalIdentity", @"AUTOMIND\gMSA_CadColab$");
+    public string ProvisioningAuditFile => GetValue("Automind:Provisioning:AuditFile", @"C:\Automind.CadastroColaboradores\Logs\ProvisioningAudit.jsonl");
+    public int InitialPasswordLength => GetInt("Automind:Provisioning:InitialPasswordLength", 14, min: 14, max: 64);
+    public bool GroupWritesEnabled => GetBool("Automind:Provisioning:GroupWritesEnabled", false);
 
-    public IReadOnlySet<string> AllowedOuDns => configuration
-        .GetSection("Automind:Ad:AllowedOuDns")
-        .GetChildren()
-        .Select(x => x.Value?.Trim())
-        .Where(x => !string.IsNullOrWhiteSpace(x))
-        .Select(x => x!)
-        .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-    public IReadOnlySet<string> ProtectedGroupNames => configuration
-        .GetSection("Automind:Ad:ProtectedGroupNames")
-        .GetChildren()
-        .Select(x => x.Value?.Trim())
-        .Where(x => !string.IsNullOrWhiteSpace(x))
-        .Select(x => x!)
-        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    public IReadOnlySet<string> AllowedOuDns => GetSet("Automind:Ad:AllowedOuDns");
+    public IReadOnlySet<string> WriteAllowedOuDns => GetSet("Automind:Provisioning:WriteAllowedOuDns");
+    public IReadOnlySet<string> ProtectedGroupNames => GetSet("Automind:Ad:ProtectedGroupNames");
 
     public DirectoryEntry Open(string distinguishedName)
         => new($"LDAP://{Server}/{distinguishedName}", null, null, AuthenticationTypes.Secure);
@@ -40,6 +34,15 @@ public sealed class AdConnectionFactory(IConfiguration configuration)
             .Replace(")", "\\29", StringComparison.Ordinal)
             .Replace("\0", "\\00", StringComparison.Ordinal);
     }
+
+    public static IReadOnlySet<string> ReadStringSet(IConfiguration configuration, string key)
+        => configuration
+            .GetSection(key)
+            .GetChildren()
+            .Select(x => x.Value?.Trim())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x!)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
     public static string? PropertyString(SearchResult result, string name)
     {
@@ -82,9 +85,24 @@ public sealed class AdConnectionFactory(IConfiguration configuration)
         return ous.Length == 0 ? distinguishedName : string.Join('/', ous);
     }
 
+    private IReadOnlySet<string> GetSet(string key) => ReadStringSet(configuration, key);
+
     private string GetValue(string key, string fallback)
     {
         var value = configuration[key];
         return string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+    }
+
+    private bool GetBool(string key, bool fallback)
+    {
+        var value = configuration[key];
+        return bool.TryParse(value, out var parsed) ? parsed : fallback;
+    }
+
+    private int GetInt(string key, int fallback, int min, int max)
+    {
+        var value = configuration[key];
+        if (!int.TryParse(value, out var parsed)) return fallback;
+        return Math.Clamp(parsed, min, max);
     }
 }

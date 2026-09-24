@@ -1,6 +1,8 @@
 @{
     ViewData["Title"] = "Início";
     var erroTopdesk = TempData["TopdeskError"] as string;
+    var writeMode = ViewBag.AdWriteMode is bool enabled && enabled;
+    var adMode = ViewBag.AdMode as string ?? "ReadOnly";
 }
 
 <div class="app-container content-stack page-enter">
@@ -19,7 +21,7 @@
         <div class="ticket-search-copy">
             <span class="eyebrow">INICIAR CADASTRO</span>
             <h2>Buscar solicitação no TOPdesk</h2>
-            <p>Informe o número do chamado. Nesta etapa o ambiente continua sem qualquer escrita no AD.</p>
+            <p>Informe o número do chamado. @(writeMode ? "O piloto de escrita está limitado à OU autorizada e exige pré-validação." : "O ambiente permanece com escrita no AD bloqueada.")</p>
         </div>
 
         <form class="ticket-search-form" method="post" data-topdesk-import data-import-url='@Url.Action("ImportarTopdesk", "Colaboradores")'>
@@ -57,8 +59,8 @@
 
         <div class="ticket-search-meta">
             <span class="status-dot status-dot-safe"></span>
-            <strong>Modo seguro</strong>
-            <span>Consulta e pré-validação. Nenhuma alteração em AD, Microsoft 365, TOPdesk ou Teams.</span>
+            <strong>@(writeMode ? "Piloto controlado" : "Modo seguro")</strong>
+            <span>@(writeMode ? "Escrita somente no escopo piloto; M365, grupos, TOPdesk e Teams permanecem sem escrita." : $"Consulta e pré-validação. Automind:Mode={adMode}; nenhuma alteração em AD, Microsoft 365, TOPdesk ou Teams.")</span>
         </div>
     </section>
 
@@ -100,7 +102,7 @@
                 <span class="eyebrow">FLUXO PROPOSTO</span>
                 <h2>Do chamado à entrega dos acessos</h2>
             </div>
-            <span class="badge-readonly">FASE 1 · SOMENTE LEITURA</span>
+            <span class="badge-readonly">@(writeMode ? "PILOTO AD CONTROLADO" : "FASE 1 · SOMENTE LEITURA")</span>
         </div>
         <div class="workflow-steps">
             <div class="workflow-step"><span>01</span><strong>TOPdesk</strong><small>Importar e revisar dados</small></div>

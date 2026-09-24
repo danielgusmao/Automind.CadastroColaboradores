@@ -45,8 +45,9 @@ public sealed class AdGroupValidation
     public List<string> MissingGroups { get; set; } = [];
 }
 
-public sealed class AdProvisioningValidationRequest
+public class AdProvisioningValidationRequest
 {
+    public string? Chamado { get; set; }
     public string? NomeCompleto { get; set; }
     public string? Login { get; set; }
     public string? Email { get; set; }
@@ -77,6 +78,7 @@ public sealed class AdProvisioningPreview
     public string SamAccountName { get; set; } = string.Empty;
     public string UserPrincipalName { get; set; } = string.Empty;
     public string Mail { get; set; } = string.Empty;
+    public string? Description { get; set; }
     public string PrimarySmtp { get; set; } = string.Empty;
     public string SecondarySmtp { get; set; } = string.Empty;
     public string Company { get; set; } = "Automind";

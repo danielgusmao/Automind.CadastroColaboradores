@@ -10,6 +10,8 @@ namespace Automind.CadastroColaboradores.Controllers;
 
 public sealed class ColaboradoresController(
     IAdReadOnlyService ad,
+    IAdProvisioningWriteService adWriter,
+    IAdAuthenticationService adAuthorization,
     IAccessSuggestionService access,
     ITopdeskRequestParser topdeskParser,
     IJobTitleTranslationService jobTitles,
@@ -129,66 +131,8 @@ public sealed class ColaboradoresController(
     {
         try
         {
-            var suggestions = (await access.SuggestAsync(request.CargoIngles, request.Departamento, cancellationToken)).ToList();
-            var selectableDns = suggestions
-                .Where(x => !x.Protegido)
-                .Select(x => x.DistinguishedName)
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            var requestedGroups = request.SelectedGroupDns
-                .Where(x => !string.IsNullOrWhiteSpace(x) && selectableDns.Contains(x))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            var identity = await ad.CheckIdentityAvailabilityAsync(request.Login ?? string.Empty, request.Email ?? string.Empty, cancellationToken);
-            var manager = await ad.ResolveUserAsync(request.SuperiorImediato ?? string.Empty, cancellationToken);
-            var ou = await ad.ValidateOrganizationalUnitAsync(request.OuDistinguishedName ?? string.Empty, cancellationToken);
-            var commonName = ou.Exists && ou.Allowed
-                ? await ad.CheckCommonNameAvailabilityAsync(request.NomeCompleto ?? string.Empty, ou.DistinguishedName ?? string.Empty, cancellationToken)
-                : new AdCommonNameAvailability { Available = false };
-            var groups = await ad.ValidateGroupsAsync(requestedGroups, cancellationToken);
-            var samValidation = ValidateSamAccountName(request.Login);
-
-            foreach (var suggestion in suggestions)
-            {
-                suggestion.Selecionado = !suggestion.Protegido && requestedGroups.Contains(suggestion.DistinguishedName, StringComparer.OrdinalIgnoreCase);
-            }
-
-            var checks = new List<AdValidationCheck>
-            {
-                Check("login", "Login válido e disponível", samValidation.Valid && identity.LoginAvailable,
-                    !samValidation.Valid ? samValidation.Message : identity.LoginAvailable ? "sAMAccountName válido e livre." : CollisionMessage(identity)),
-                Check("cn", "CN disponível na OU", commonName.Available,
-                    commonName.Available ? "Nome do objeto livre na OU selecionada." : CommonNameMessage(commonName, request.NomeCompleto)),
-                Check("upn", "UPN disponível", identity.UpnAvailable,
-                    identity.UpnAvailable ? "UPN livre." : CollisionMessage(identity)),
-                Check("email", "E-mail / SMTP disponível", identity.EmailAvailable,
-                    identity.EmailAvailable ? "mail e proxyAddresses livres para os domínios configurados." : CollisionMessage(identity)),
-                Check("manager", "Superior localizado", manager.Found && !manager.Ambiguous,
-                    ManagerMessage(manager)),
-                Check("ou", "OU válida", ou.Exists && ou.Allowed,
-                    ou.Exists && ou.Allowed ? $"OU confirmada: {ou.DisplayName}." : "A OU não existe no AD ou não está na lista permitida."),
-                Check("groups", "Grupos existentes", requestedGroups.Count > 0 && groups.AllExist,
-                    GroupMessage(requestedGroups, groups))
-            };
-
-            var valid = checks.All(x => x.Passed);
-            var preview = valid
-                ? BuildPreview(request, manager, ou, suggestions, requestedGroups)
-                : null;
-
-            return Json(new AdProvisioningValidationResponse
-            {
-                Success = true,
-                Valid = valid,
-                Message = valid
-                    ? "Pré-validação concluída no Active Directory. Nenhuma escrita foi executada."
-                    : "A pré-validação encontrou pendências. Nenhuma escrita foi executada.",
-                Checks = checks,
-                Groups = suggestions,
-                Preview = preview
-            });
+            var context = await ValidateProvisioningAsync(request, cancellationToken);
+            return Json(context.Response);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -203,6 +147,71 @@ public sealed class ColaboradoresController(
                 Valid = false,
                 Message = "Não foi possível concluir a consulta no Active Directory. Nenhuma alteração foi realizada."
             });
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CriarUsuarioPiloto([FromBody] AdProvisioningCreateRequest request, CancellationToken cancellationToken)
+    {
+        Response.Headers["Cache-Control"] = "no-store, no-cache, max-age=0";
+        Response.Headers["Pragma"] = "no-cache";
+
+        if (!request.Confirmacao)
+            return Json(CreateBlocked("A criação exige confirmação explícita do operador."));
+
+        if (!adWriter.IsWriteModeEnabled)
+            return Json(CreateBlocked("A aplicação permanece em modo ReadOnly. Nenhuma escrita foi executada."));
+
+        var operatorName = User.Identity?.Name ?? HttpContext.Session.GetString("Usuario") ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(operatorName) || !await adAuthorization.IsAuthorizedAsync(operatorName, cancellationToken))
+            return Json(CreateBlocked("O operador não está autorizado pelo grupo configurado no Active Directory."));
+
+        try
+        {
+            var context = await ValidateProvisioningAsync(request, cancellationToken);
+            if (!context.Response.Valid || context.Response.Preview is null)
+                return Json(CreateBlocked("A pré-validação não está íntegra. Nenhuma escrita foi executada."));
+
+            if (!adWriter.WriteAllowedOuDns.Contains(context.Ou.DistinguishedName ?? string.Empty))
+                return Json(CreateBlocked("A OU selecionada não pertence ao escopo de escrita do piloto."));
+
+            if ((request.SelectedGroupDns ?? []).Any(x => !string.IsNullOrWhiteSpace(x)))
+                return Json(CreateBlocked("A escrita de grupos ainda está bloqueada no piloto. Desmarque todos os grupos antes da criação."));
+
+            var preview = context.Response.Preview;
+            var command = new AdProvisioningWriteCommand
+            {
+                Chamado = (request.Chamado ?? string.Empty).Trim().ToUpperInvariant(),
+                Operator = operatorName,
+                Cn = preview.Cn,
+                GivenName = preview.GivenName,
+                Surname = preview.Surname,
+                DisplayName = preview.Cn,
+                Description = preview.Description ?? preview.Title ?? string.Empty,
+                SamAccountName = preview.SamAccountName,
+                UserPrincipalName = preview.UserPrincipalName,
+                Mail = preview.Mail,
+                Office = preview.Office,
+                TelephoneNumber = preview.TelephoneNumber,
+                Title = preview.Title,
+                Department = preview.Department,
+                Company = "Automind",
+                ManagerDistinguishedName = preview.ManagerDistinguishedName ?? string.Empty,
+                OuDistinguishedName = preview.OuDistinguishedName ?? string.Empty,
+                GroupDns = []
+            };
+
+            return Json(await adWriter.CreateUserAsync(command, cancellationToken));
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning("Falha antes da chamada de escrita AD. Tipo: {ErrorType}; código: {Code}", exception.GetType().Name, exception.HResult);
+            return Json(CreateBlocked("Não foi possível concluir as validações finais. Nenhuma nova escrita deve ser tentada até revisão."));
         }
     }
 
@@ -232,8 +241,91 @@ public sealed class ColaboradoresController(
         return View("Novo", vm);
     }
 
+    private async Task<ProvisioningValidationContext> ValidateProvisioningAsync(
+        AdProvisioningValidationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var suggestions = (await access.SuggestAsync(request.CargoIngles, request.Departamento, cancellationToken)).ToList();
+        var selectableDns = suggestions
+            .Where(x => !x.Protegido)
+            .Select(x => x.DistinguishedName)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var rawRequestedGroups = (request.SelectedGroupDns ?? [])
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var invalidRequestedGroups = rawRequestedGroups
+            .Where(x => !selectableDns.Contains(x))
+            .ToList();
+
+        var requestedGroups = rawRequestedGroups
+            .Where(selectableDns.Contains)
+            .ToList();
+
+        var identity = await ad.CheckIdentityAvailabilityAsync(request.Login ?? string.Empty, request.Email ?? string.Empty, cancellationToken);
+        var manager = await ad.ResolveUserAsync(request.SuperiorImediato ?? string.Empty, cancellationToken);
+        var ou = await ad.ValidateOrganizationalUnitAsync(request.OuDistinguishedName ?? string.Empty, cancellationToken);
+        var commonName = ou.Exists && ou.Allowed
+            ? await ad.CheckCommonNameAvailabilityAsync(request.NomeCompleto ?? string.Empty, ou.DistinguishedName ?? string.Empty, cancellationToken)
+            : new AdCommonNameAvailability { Available = false };
+        var groups = await ad.ValidateGroupsAsync(requestedGroups, cancellationToken);
+        var samValidation = ValidateSamAccountName(request.Login);
+        var ticketValidation = ValidateTicket(request.Chamado);
+        var nameValidation = ValidateFullName(request.NomeCompleto);
+        var emailValidation = ValidateCorporateEmail(request.Login, request.Email);
+        var organizationValidation = ValidateOrganization(request.CargoIngles, request.Departamento);
+
+        foreach (var suggestion in suggestions)
+            suggestion.Selecionado = !suggestion.Protegido && requestedGroups.Contains(suggestion.DistinguishedName, StringComparer.OrdinalIgnoreCase);
+
+        var groupsPassed = invalidRequestedGroups.Count == 0 && groups.AllExist;
+        var checks = new List<AdValidationCheck>
+        {
+            Check("ticket", "Chamado TOPdesk válido", ticketValidation.Valid, ticketValidation.Message),
+            Check("name", "Nome completo válido", nameValidation.Valid, nameValidation.Message),
+            Check("login", "Login válido e disponível", samValidation.Valid && identity.LoginAvailable,
+                !samValidation.Valid ? samValidation.Message : identity.LoginAvailable ? "sAMAccountName válido e livre." : CollisionMessage(identity)),
+            Check("cn", "CN disponível na OU", commonName.Available,
+                commonName.Available ? "Nome do objeto livre na OU selecionada." : CommonNameMessage(commonName, request.NomeCompleto)),
+            Check("upn", "UPN disponível", emailValidation.Valid && identity.UpnAvailable,
+                !emailValidation.Valid ? emailValidation.Message : identity.UpnAvailable ? "UPN corporativo livre." : CollisionMessage(identity)),
+            Check("email", "E-mail / SMTP disponível", emailValidation.Valid && identity.EmailAvailable,
+                !emailValidation.Valid ? emailValidation.Message : identity.EmailAvailable ? "mail e proxyAddresses livres para os domínios configurados." : CollisionMessage(identity)),
+            Check("organization", "Cargo e departamento preenchidos", organizationValidation.Valid, organizationValidation.Message),
+            Check("manager", "Superior localizado", manager.Found && !manager.Ambiguous, ManagerMessage(manager)),
+            Check("ou", "OU válida", ou.Exists && ou.Allowed,
+                ou.Exists && ou.Allowed ? $"OU confirmada: {ou.DisplayName}." : "A OU não existe no AD ou não está na lista permitida."),
+            Check("groups", "Grupos válidos", groupsPassed, GroupMessage(requestedGroups, groups, invalidRequestedGroups))
+        };
+
+        var valid = checks.All(x => x.Passed);
+        var preview = valid ? BuildPreview(request, manager, ou, suggestions, requestedGroups) : null;
+        var response = new AdProvisioningValidationResponse
+        {
+            Success = true,
+            Valid = valid,
+            Message = valid
+                ? "Pré-validação concluída no Active Directory. Nenhuma escrita foi executada."
+                : "A pré-validação encontrou pendências. Nenhuma escrita foi executada.",
+            Checks = checks,
+            Groups = suggestions,
+            Preview = preview
+        };
+
+        return new ProvisioningValidationContext(response, manager, ou, requestedGroups);
+    }
+
     private async Task LoadOusAsync(CancellationToken cancellationToken)
     {
+        ViewBag.AdWriteMode = adWriter.IsWriteModeEnabled;
+        ViewBag.AdMode = adWriter.Mode;
+        ViewBag.AdGroupWritesEnabled = adWriter.GroupWritesEnabled;
+        ViewBag.WriteAllowedOuDns = adWriter.WriteAllowedOuDns.ToArray();
+
         try
         {
             ViewBag.Ous = await ad.GetOrganizationalUnitsAsync(cancellationToken);
@@ -297,6 +389,7 @@ public sealed class ColaboradoresController(
             SamAccountName = login,
             UserPrincipalName = email,
             Mail = email,
+            Description = request.CargoIngles?.Trim(),
             PrimarySmtp = string.IsNullOrWhiteSpace(login) ? string.Empty : $"SMTP:{login}@{directory.PrimarySmtpDomain}",
             SecondarySmtp = string.IsNullOrWhiteSpace(email) ? string.Empty : $"smtp:{email}",
             Company = "Automind",
@@ -308,6 +401,41 @@ public sealed class ColaboradoresController(
             OuDistinguishedName = ou.DistinguishedName,
             Groups = groupNames
         };
+    }
+
+    private static (bool Valid, string Message) ValidateTicket(string? value)
+    {
+        var ticket = (value ?? string.Empty).Trim().ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(ticket)) return (false, "Informe o chamado TOPdesk.");
+        return Regex.IsMatch(ticket, @"^I\d{4}-\d{4,6}$", RegexOptions.CultureInvariant)
+            ? (true, "Chamado TOPdesk informado.")
+            : (false, "Formato de chamado TOPdesk inválido.");
+    }
+
+    private static (bool Valid, string Message) ValidateFullName(string? value)
+    {
+        var name = (value ?? string.Empty).Trim();
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length < 2) return (false, "Informe nome e sobrenome.");
+        if (name.Length > 64) return (false, "O CN excede 64 caracteres e precisa ser ajustado antes da criação.");
+        return (true, "Nome completo válido para CN/givenName/sn.");
+    }
+
+    private (bool Valid, string Message) ValidateCorporateEmail(string? loginValue, string? emailValue)
+    {
+        var login = (loginValue ?? string.Empty).Trim();
+        var email = (emailValue ?? string.Empty).Trim();
+        var expected = string.IsNullOrWhiteSpace(login) ? string.Empty : $"{login}@{directory.EmailDomain}";
+        return !string.IsNullOrWhiteSpace(expected) && string.Equals(email, expected, StringComparison.OrdinalIgnoreCase)
+            ? (true, $"E-mail corporativo no domínio {directory.EmailDomain}.")
+            : (false, $"O e-mail deve ser exatamente {expected}.");
+    }
+
+    private static (bool Valid, string Message) ValidateOrganization(string? title, string? department)
+    {
+        if (string.IsNullOrWhiteSpace(title)) return (false, "Informe o cargo em inglês.");
+        if (string.IsNullOrWhiteSpace(department)) return (false, "Informe o departamento.");
+        return (true, "Cargo e departamento preenchidos.");
     }
 
     private static (bool Valid, string Message) ValidateSamAccountName(string? value)
@@ -339,12 +467,27 @@ public sealed class ColaboradoresController(
         return $"Superior confirmado: {manager.DisplayName} ({manager.SamAccountName}).";
     }
 
-    private static string GroupMessage(IReadOnlyCollection<string> requestedGroups, AdGroupValidation result)
+    private static string GroupMessage(
+        IReadOnlyCollection<string> requestedGroups,
+        AdGroupValidation result,
+        IReadOnlyCollection<string> invalidRequestedGroups)
     {
-        if (requestedGroups.Count == 0) return "Nenhum grupo selecionado para validação.";
-        if (result.AllExist) return $"{requestedGroups.Count} grupo(s) confirmado(s) no AD.";
+        if (invalidRequestedGroups.Count > 0)
+            return $"Há grupo(s) protegido(s) ou fora das sugestões permitidas: {string.Join("; ", invalidRequestedGroups)}";
+        if (requestedGroups.Count == 0) return "Nenhum grupo selecionado; o piloto pode seguir sem escrita de memberships.";
+        if (result.AllExist) return $"{requestedGroups.Count} grupo(s) confirmado(s) no AD. A criação piloto continuará bloqueando escrita de grupos.";
         return $"Grupos não localizados: {string.Join("; ", result.MissingGroups)}";
     }
+
+    private static AdProvisioningCreateResponse CreateBlocked(string message)
+        => new()
+        {
+            Success = false,
+            UserCreated = false,
+            Enabled = false,
+            RequiresManualReview = false,
+            Message = message
+        };
 
     private static string? GetString(JsonElement root, string property)
     {
@@ -438,6 +581,12 @@ public sealed class ColaboradoresController(
         var match = regex.Match(observacao);
         return match.Success ? match.Groups[1].Value.Trim() : null;
     }
+
+    private sealed record ProvisioningValidationContext(
+        AdProvisioningValidationResponse Response,
+        AdUserResolution Manager,
+        AdOuValidation Ou,
+        IReadOnlyList<string> RequestedGroups);
 
     public sealed class GroupSuggestionRequest
     {

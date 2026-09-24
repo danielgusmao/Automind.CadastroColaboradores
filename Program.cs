@@ -21,6 +21,8 @@ if (!OperatingSystem.IsWindows())
 builder.Services.AddSingleton<IAdAuthenticationService, WindowsAdAuthenticationService>();
 builder.Services.AddSingleton<AdConnectionFactory>();
 builder.Services.AddSingleton<IAdReadOnlyService, WindowsAdReadOnlyService>();
+builder.Services.AddSingleton<IProvisioningAuditService, FileProvisioningAuditService>();
+builder.Services.AddSingleton<IAdProvisioningWriteService, WindowsAdProvisioningWriteService>();
 builder.Services.AddSingleton<IAccessSuggestionService, WindowsAccessSuggestionService>();
 builder.Services.AddSingleton<IJobTitleTranslationService, ConfigurationJobTitleTranslationService>();
 builder.Services.AddSingleton<ITopdeskRequestParser, TopdeskRequestParser>();

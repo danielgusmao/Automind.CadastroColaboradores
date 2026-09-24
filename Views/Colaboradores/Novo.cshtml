@@ -5,6 +5,11 @@
     var ous = ViewBag.Ous as IReadOnlyList<OrganizationalUnitOption> ?? [];
     var adReadError = ViewBag.AdReadError as string;
     var adGroupError = ViewBag.AdGroupError as string;
+    var writeMode = ViewBag.AdWriteMode is bool enabled && enabled;
+    var adMode = ViewBag.AdMode as string ?? "ReadOnly";
+    var groupWritesEnabled = ViewBag.AdGroupWritesEnabled is bool groupsEnabled && groupsEnabled;
+    var writeAllowedOuDns = ViewBag.WriteAllowedOuDns as IReadOnlyList<string> ?? [];
+    var writeTargetOu = writeAllowedOuDns.FirstOrDefault() ?? string.Empty;
     var commonCount = Model.GruposSugeridos.Count(g => !g.Protegido && g.EncontradoEm == g.TotalComparados);
     var exceptionCount = Model.GruposSugeridos.Count(g => !g.Protegido && g.EncontradoEm != g.TotalComparados);
     var protectedCount = Model.GruposSugeridos.Count(g => g.Protegido);
@@ -15,16 +20,24 @@
         <div>
             <span class="eyebrow">PROVISIONAMENTO</span>
             <h1>Novo colaborador</h1>
-            <p>Revise os dados, consulte o Active Directory e valide a prévia antes de qualquer operação de escrita futura.</p>
+            <p>Revise os dados, consulte o Active Directory e valide a prévia antes de qualquer operação de escrita.</p>
         </div>
-        <span class="badge-readonly">AD REAL · SOMENTE LEITURA</span>
+        <span class="badge-readonly">AD REAL · @(writeMode ? "PILOTO CONTROLADO" : "SOMENTE LEITURA")</span>
     </section>
 
-    <div class="safe-banner">
+    <div class="safe-banner @(writeMode ? "safe-banner-pilot" : string.Empty)">
         <div class="safe-banner-icon">✓</div>
         <div>
-            <strong>Consultas reais ao Active Directory; escrita bloqueada.</strong>
-            <span>Esta entrega lista OUs, valida identidade/superior/grupos e calcula perfis reais, mas não executa New-ADUser, senha ou inclusão em grupos.</span>
+            @if (writeMode)
+            {
+                <strong>Piloto de escrita ativo apenas no escopo autorizado.</strong>
+                <span>Criação permitida somente na OU piloto. Grupos, proxyAddresses, pwdLastSet e Microsoft 365 permanecem bloqueados.</span>
+            }
+            else
+            {
+                <strong>Consultas reais ao Active Directory; escrita bloqueada.</strong>
+                <span>O código de provisionamento está preparado, mas <code>Automind:Mode=@adMode</code> mantém toda criação de usuário bloqueada.</span>
+            }
         </div>
     </div>
 
@@ -49,7 +62,7 @@
                 <label>Número do chamado</label>
                 <div class="ticket-input-wrap compact-ticket">
                     <span class="ticket-prefix">#</span>
-                    <input name="chamado" value="@Model.Chamado" placeholder="I2609-0223" autocomplete="off" />
+                    <input name="chamado" data-ticket-source value="@Model.Chamado" placeholder="I2609-0223" autocomplete="off" />
                 </div>
             </div>
             <div class="field compact-field source-field">
@@ -68,8 +81,13 @@
     <form class="provisioning-grid"
           data-provisioning-form
           data-groups-url='@Url.Action("BuscarGrupos", "Colaboradores")'
-          data-validation-url='@Url.Action("ValidarAd", "Colaboradores")'>
+          data-validation-url='@Url.Action("ValidarAd", "Colaboradores")'
+          data-create-url='@Url.Action("CriarUsuarioPiloto", "Colaboradores")'
+          data-write-enabled="@writeMode.ToString().ToLowerInvariant()"
+          data-write-target-ou="@writeTargetOu"
+          data-group-writes-enabled="@groupWritesEnabled.ToString().ToLowerInvariant()">
         @Html.AntiForgeryToken()
+        <input type="hidden" name="Chamado" value="@Model.Chamado" />
         <input type="hidden" name="PerfilUsuario" value="@Model.PerfilUsuario" />
         <input type="hidden" name="GrupoTrabalho" value="@Model.GrupoTrabalho" />
 
@@ -101,7 +119,7 @@
             <label class="toggle-line">
                 <input name="DivulgarContato" type="checkbox" checked="@Model.DivulgarContato" />
                 <span class="toggle-ui"></span>
-                <span><strong>Divulgar contato na intranet</strong><small>O telefone só entrará na prévia do AD quando esta opção estiver ativa.</small></span>
+                <span><strong>Divulgar contato na intranet</strong><small>O telefone só será gravado no AD quando esta opção estiver ativa.</small></span>
             </label>
         </section>
 
@@ -127,7 +145,7 @@
                         <option value="@ou.DistinguishedName" selected="@(string.Equals(Model.OuSelecionada, ou.DistinguishedName, StringComparison.OrdinalIgnoreCase))">@ou.DisplayName</option>
                     }
                 </select>
-                <small class="field-help">Opções consultadas no AD real e filtradas pela allowlist configurada por DistinguishedName.</small>
+                <small class="field-help">Opções consultadas no AD real e filtradas pela allowlist de leitura. A escrita possui allowlist separada.</small>
             </div>
         </section>
 
@@ -191,6 +209,10 @@
                     </tbody>
                 </table>
             </div>
+            @if (!groupWritesEnabled)
+            {
+                <div class="topdesk-import-status is-warning group-write-warning">A sugestão de grupos continua disponível para revisão, mas o piloto não grava memberships. Para criar o usuário piloto, deixe todos os grupos desmarcados.</div>
+            }
             <div class="topdesk-import-status" data-groups-status hidden></div>
         </section>
 
@@ -198,16 +220,19 @@
             <div class="validation-copy">
                 <span class="eyebrow">04 · PRÉ-VALIDAÇÃO</span>
                 <h2>Validar no AD</h2>
-                <p>Consulta disponibilidade de identidade, superior, OU e grupos. Microsoft 365 está pausado e não participa desta validação.</p>
+                <p>Revalida chamado, identidade, superior, OU e grupos diretamente no backend. Microsoft 365 não participa desta etapa.</p>
             </div>
             <div class="validation-checks">
+                <span data-ad-check="ticket">○ Chamado TOPdesk válido</span>
+                <span data-ad-check="name">○ Nome completo válido</span>
                 <span data-ad-check="login">○ Login válido e disponível</span>
                 <span data-ad-check="cn">○ CN disponível na OU</span>
                 <span data-ad-check="upn">○ UPN disponível</span>
                 <span data-ad-check="email">○ E-mail / SMTP disponível</span>
+                <span data-ad-check="organization">○ Cargo e departamento preenchidos</span>
                 <span data-ad-check="manager">○ Superior localizado</span>
                 <span data-ad-check="ou">○ OU válida</span>
-                <span data-ad-check="groups">○ Grupos existentes</span>
+                <span data-ad-check="groups">○ Grupos válidos</span>
             </div>
             <div class="validation-actions">
                 <button type="button" class="btn btn-primary btn-wide" data-validate-ad>Validar no AD <small>somente leitura</small></button>
@@ -218,9 +243,9 @@
         <section class="panel span-full ad-preview" data-ad-preview hidden>
             <div class="section-title-row">
                 <div class="section-number">05</div>
-                <div><span class="eyebrow">PRÉVIA</span><h2>Objeto que seria criado no AD</h2></div>
+                <div><span class="eyebrow">PRÉVIA</span><h2>Objeto preparado para o AD</h2></div>
             </div>
-            <p class="preview-warning"><strong>Nenhuma escrita é executada nesta versão.</strong> A prévia existe para conferência antes de uma autorização futura.</p>
+            <p class="preview-warning"><strong>A prévia não executa escrita.</strong> proxyAddresses e pwdLastSet permanecem fora do contrato do piloto.</p>
             <dl class="preview-grid">
                 <div><dt>CN</dt><dd data-preview="cn"></dd></div>
                 <div><dt>sAMAccountName</dt><dd data-preview="samAccountName"></dd></div>
@@ -228,8 +253,9 @@
                 <div><dt>sn</dt><dd data-preview="surname"></dd></div>
                 <div><dt>UPN</dt><dd data-preview="userPrincipalName"></dd></div>
                 <div><dt>mail</dt><dd data-preview="mail"></dd></div>
-                <div><dt>Primary SMTP</dt><dd data-preview="primarySmtp"></dd></div>
-                <div><dt>Secondary SMTP</dt><dd data-preview="secondarySmtp"></dd></div>
+                <div><dt>description</dt><dd data-preview="description"></dd></div>
+                <div><dt>SMTP futuro (não escrito)</dt><dd data-preview="primarySmtp"></dd></div>
+                <div><dt>SMTP secundário futuro (não escrito)</dt><dd data-preview="secondarySmtp"></dd></div>
                 <div><dt>Title</dt><dd data-preview="title"></dd></div>
                 <div><dt>Department</dt><dd data-preview="department"></dd></div>
                 <div><dt>Company</dt><dd data-preview="company"></dd></div>
@@ -240,5 +266,28 @@
                 <div class="preview-wide"><dt>Grupos selecionados</dt><dd data-preview="groups"></dd></div>
             </dl>
         </section>
+
+        @if (writeMode)
+        {
+            <section class="panel span-full pilot-write-panel" data-pilot-write>
+                <div class="section-title-row">
+                    <div class="section-number">06</div>
+                    <div><span class="eyebrow">PILOTO CONTROLADO</span><h2>Criar usuário no AD</h2></div>
+                </div>
+                <div class="pilot-scope">
+                    <strong>Escopo de escrita:</strong>
+                    <code>@writeTargetOu</code>
+                </div>
+                <p>O backend reexecuta todas as validações imediatamente antes da escrita. A conta nasce desabilitada, recebe atributos, senha e manager, é relida e só então é habilitada. Grupos, M365, proxyAddresses e pwdLastSet permanecem bloqueados.</p>
+                <button type="button" class="btn btn-primary btn-wide" data-create-user disabled>Criar usuário piloto no AD</button>
+                <div class="topdesk-import-status" data-create-status hidden></div>
+                <div class="temporary-password" data-temporary-password hidden>
+                    <strong>Senha inicial — exibição única</strong>
+                    <code data-password-value></code>
+                    <button type="button" class="btn btn-secondary" data-copy-password>Copiar senha</button>
+                    <small>Não registrar esta senha em histórico, banco, ticket ou log.</small>
+                </div>
+            </section>
+        }
     </form>
 </div>
