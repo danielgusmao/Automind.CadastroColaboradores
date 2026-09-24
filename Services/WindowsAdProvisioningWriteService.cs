@@ -29,6 +29,7 @@ public sealed class WindowsAdProvisioningWriteService(
     public string PilotMembershipUserDn => directory.PilotMembershipUserDn;
     public string PilotMembershipGroupDn => directory.PilotMembershipGroupDn;
     public IReadOnlySet<string> WriteAllowedOuDns => directory.WriteAllowedOuDns;
+    public IReadOnlySet<string> GroupWriteAllowedDns => directory.GroupWriteAllowedDns;
     public string Mode => directory.Mode;
 
     public async Task<AdProvisioningCreateResponse> CreateUserAsync(
@@ -48,8 +49,15 @@ public sealed class WindowsAdProvisioningWriteService(
         if (!WriteAllowedOuDns.Contains(command.OuDistinguishedName))
             return Fail(response, "A OU informada não pertence à allowlist de escrita do piloto.");
 
-        if (command.GroupDns.Count > 0)
-            return Fail(response, "A escrita de grupos ainda não está habilitada no piloto. Remova os grupos selecionados antes da criação.");
+        if (command.GroupDns.Count > 0 && !GroupWritesEnabled)
+            return Fail(response, "A escrita de grupos não está habilitada no piloto.");
+
+        var unauthorizedGroups = command.GroupDns
+            .Where(x => !GroupWriteAllowedDns.Contains(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (unauthorizedGroups.Count > 0)
+            return Fail(response, $"Há grupo(s) fora da allowlist de escrita do piloto: {string.Join("; ", unauthorizedGroups)}");
 
         var technicalIdentity = WindowsIdentity.GetCurrent()?.Name ?? string.Empty;
         if (!string.Equals(technicalIdentity, directory.ExpectedTechnicalIdentity, StringComparison.OrdinalIgnoreCase))
@@ -65,6 +73,7 @@ public sealed class WindowsAdProvisioningWriteService(
         string? userDn = null;
         var userCreated = false;
         string? temporaryPassword = null;
+        var addedGroupDns = new List<string>();
 
         try
         {
@@ -104,8 +113,22 @@ public sealed class WindowsAdProvisioningWriteService(
             AddStep(response, "manager", true, "Superior imediato definido pelo DistinguishedName validado.");
             await AuditAsync(operationId, command, technicalIdentity, "manager", "success", userDn, ["manager"], cancellationToken);
 
-            AddStep(response, "groups", true, "Piloto sem escrita de grupos; nenhuma membership foi alterada.");
-            await AuditAsync(operationId, command, technicalIdentity, "groups", "skipped", userDn, [], cancellationToken);
+            if (command.GroupDns.Count > 0)
+            {
+                foreach (var groupDn in command.GroupDns.Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    if (AddGroupMembership(groupDn, userDn))
+                        addedGroupDns.Add(groupDn);
+                }
+                ValidateGroupMemberships(userDn, command.GroupDns);
+                AddStep(response, "groups", true, $"{addedGroupDns.Count} membership(s) gravada(s) e confirmada(s) por releitura.");
+                await AuditAsync(operationId, command, technicalIdentity, "groups", "success", userDn, [], cancellationToken);
+            }
+            else
+            {
+                AddStep(response, "groups", true, "Nenhum grupo foi selecionado; nenhuma membership foi alterada.");
+                await AuditAsync(operationId, command, technicalIdentity, "groups", "skipped", userDn, [], cancellationToken);
+            }
 
             ValidateReadBack(userDn, command, expectDisabled: true);
             AddStep(response, "readback-disabled", true, "Releitura confirmou os atributos e o estado desabilitado.");
@@ -128,14 +151,19 @@ public sealed class WindowsAdProvisioningWriteService(
 
             response.Success = true;
             response.RequiresManualReview = false;
-            response.Message = "Usuário piloto criado e validado no Active Directory.";
+            response.Message = command.GroupDns.Count > 0
+                ? "Usuário piloto criado, memberships gravadas e validações concluídas no Active Directory."
+                : "Usuário piloto criado e validado no Active Directory.";
             response.TemporaryPassword = temporaryPassword;
             return response;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             if (userCreated && !string.IsNullOrWhiteSpace(userDn))
+            {
+                TryRollbackMemberships(userDn, addedGroupDns, response);
                 TryKeepDisabled(userDn, response);
+            }
             throw;
         }
         catch (Exception exception)
@@ -147,7 +175,10 @@ public sealed class WindowsAdProvisioningWriteService(
                 exception.HResult);
 
             if (userCreated && !string.IsNullOrWhiteSpace(userDn))
+            {
+                TryRollbackMemberships(userDn, addedGroupDns, response);
                 TryKeepDisabled(userDn, response);
+            }
 
             try
             {
@@ -162,7 +193,7 @@ public sealed class WindowsAdProvisioningWriteService(
                     DistinguishedName = userDn,
                     OuDistinguishedName = command.OuDistinguishedName,
                     Attributes = changedAttributes,
-                    Groups = [],
+                    Groups = addedGroupDns.ToList(),
                     ErrorType = exception.GetType().Name,
                     ErrorCode = exception.HResult
                 }, CancellationToken.None);
@@ -391,6 +422,73 @@ public sealed class WindowsAdProvisioningWriteService(
             throw new InvalidOperationException("A releitura do userAccountControl não corresponde ao estado esperado.");
     }
 
+    private bool AddGroupMembership(string groupDn, string userDn)
+    {
+        if (!GroupWriteAllowedDns.Contains(groupDn))
+            throw new InvalidOperationException($"Grupo fora da allowlist de escrita: {groupDn}");
+
+        using var group = directory.Open(groupDn);
+        group.RefreshCache(["member"]);
+        var alreadyMember = group.Properties["member"].Cast<object>()
+            .Select(x => x?.ToString())
+            .Any(x => string.Equals(x, userDn, StringComparison.OrdinalIgnoreCase));
+        if (alreadyMember) return false;
+
+        group.Properties["member"].Add(userDn);
+        group.CommitChanges();
+        return true;
+    }
+
+    private void ValidateGroupMemberships(string userDn, IReadOnlyCollection<string> groupDns)
+    {
+        foreach (var groupDn in groupDns.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            using var group = directory.Open(groupDn);
+            group.RefreshCache(["member"]);
+            var found = group.Properties["member"].Cast<object>()
+                .Select(x => x?.ToString())
+                .Any(x => string.Equals(x, userDn, StringComparison.OrdinalIgnoreCase));
+            if (!found)
+                throw new InvalidOperationException($"A releitura não confirmou a membership no grupo {groupDn}.");
+        }
+    }
+
+    private void TryRollbackMemberships(string userDn, IReadOnlyCollection<string> addedGroupDns, AdProvisioningCreateResponse response)
+    {
+        if (addedGroupDns.Count == 0) return;
+
+        var failures = new List<string>();
+        foreach (var groupDn in addedGroupDns.Reverse())
+        {
+            try
+            {
+                using var group = directory.Open(groupDn);
+                group.RefreshCache(["member"]);
+                var values = group.Properties["member"];
+                var match = values.Cast<object>()
+                    .FirstOrDefault(x => string.Equals(x?.ToString(), userDn, StringComparison.OrdinalIgnoreCase));
+                if (match is not null)
+                {
+                    values.Remove(match);
+                    group.CommitChanges();
+                }
+            }
+            catch (Exception rollbackException)
+            {
+                failures.Add(groupDn);
+                logger.LogError(rollbackException, "Falha ao remover membership criada pela operação. Grupo: {GroupDn}", groupDn);
+            }
+        }
+
+        if (failures.Count == 0)
+            AddStep(response, "groups-rollback", true, "Rollback removeu somente as memberships adicionadas por esta operação.");
+        else
+        {
+            response.RequiresManualReview = true;
+            AddStep(response, "groups-rollback", false, $"Falha ao remover membership(s): {string.Join("; ", failures)}");
+        }
+    }
+
     private void TryKeepDisabled(string userDn, AdProvisioningCreateResponse response)
     {
         try
@@ -434,7 +532,7 @@ public sealed class WindowsAdProvisioningWriteService(
             DistinguishedName = userDn,
             OuDistinguishedName = command.OuDistinguishedName,
             Attributes = attributes,
-            Groups = []
+            Groups = command.GroupDns.Distinct(StringComparer.OrdinalIgnoreCase).ToList()
         }, cancellationToken);
 
     private static void Set(DirectoryEntry entry, string property, string? value)

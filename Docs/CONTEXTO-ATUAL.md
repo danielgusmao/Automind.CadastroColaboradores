@@ -1,75 +1,90 @@
 # CadColab - contexto atual para continuidade
 
-Versao em preparacao: `0.1.9`  
+Versao em preparacao: `0.1.10`  
 Data: 24/09/2026  
 Projeto: `Automind.CadastroColaboradores`
 
 ## Estado operacional atual
 
-- build confirmado da v0.1.8: `net10.0-windows`, 0 erros e 0 warnings;
+- ultimo build confirmado pelo responsavel: v0.1.8/v0.1.9 base em `net10.0-windows`, 0 erros e 0 warnings;
 - `Automind:Mode=PilotWrite`;
-- criacao real de usuario continua limitada a `OU=07.Outros,OU=Automind,DC=automind,DC=com,DC=br`;
+- criacao real de usuario limitada a `OU=07.Outros,OU=Automind,DC=automind,DC=com,DC=br`;
 - App Pool `CadastroColaboradores` executa como `AUTOMIND\gMSA_CadColab$`;
-- usuario piloto existente: `teste.cadcolab`;
-- descoberta de grupos validada: 8 comuns 5/5, 4 excecoes, busca manual e bloqueio de grupo protegido;
-- `GroupWritesEnabled=false` continua valendo para o fluxo normal de criacao;
-- existe agora um teste isolado de membership real para o par exato `teste.cadcolab` -> `_CriaMovePastas`;
-- Microsoft 365, `proxyAddresses` e `pwdLastSet` continuam fora da escrita.
+- usuario piloto existente `teste.cadcolab` foi criado pelo CadColab e permanece em `07.Outros`;
+- sugestao/seleção de grupos validada: 8 comuns 5/5, 4 excecoes, busca manual e bloqueio de grupo protegido;
+- coorte de sugestao exclui `07.Outros` para contas piloto nao distorcerem as frequencias;
+- teste real de membership concluido com sucesso: `teste.cadcolab` entrou em `_CriaMovePastas` pela propria aplicacao;
+- ADUC confirmou a membership tanto em `Members` do grupo quanto em `Member Of` do usuario;
+- ACE `WriteProperty(member)` para `SG_CadastroColaboradores_AD_Writer` no grupo `_CriaMovePastas` esta funcional;
+- v0.1.10 evolui para `GroupWritesEnabled=true`, mas somente para `GroupWriteAllowedDns`;
+- allowlist de grupos atual: somente `CN=_CriaMovePastas,OU=07.Outros,OU=Automind,DC=automind,DC=com,DC=br`;
+- grupos fora dessa allowlist podem continuar aparecendo como sugestao, mas bloqueiam a pre-validacao se permanecerem selecionados para escrita;
+- Microsoft 365, Teams, `proxyAddresses` e `pwdLastSet` continuam fora da escrita.
 
-## Membership piloto autorizada
+## Fluxo de escrita v0.1.10
 
-O responsavel autorizou explicitamente usar:
+1. operador autorizado confirma a operacao;
+2. backend repete toda pre-validacao;
+3. exige OU na allowlist de escrita;
+4. exige cada grupo selecionado na `GroupWriteAllowedDns`;
+5. exige identidade tecnica `AUTOMIND\gMSA_CadColab$`;
+6. inicia auditoria antes da primeira escrita;
+7. cria usuario desabilitado;
+8. grava atributos;
+9. define senha;
+10. grava manager;
+11. adiciona memberships autorizadas no atributo `member` dos grupos;
+12. releitura confirma memberships;
+13. releitura confirma usuario ainda desabilitado e atributos;
+14. habilita a conta por ultimo;
+15. releitura final e auditoria de conclusao.
 
-- usuario: `CN=Teste Provisionamento Automind,OU=07.Outros,OU=Automind,DC=automind,DC=com,DC=br`;
-- grupo: `CN=_CriaMovePastas,OU=07.Outros,OU=Automind,DC=automind,DC=com,DC=br`.
-
-A ACE `WriteProperty(member)` para `SG_CadastroColaboradores_AD_Writer` foi aplicada nesse grupo e o responsavel confirmou que a alteracao funcionou. Isso nao autoriza reutilizar outras ACLs, contas ou regras do sistema legado CriaMovePastas.
-
-A v0.1.9 adiciona um painel `MEMBERSHIP PILOTO` que executa a inclusao pela propria identidade tecnica do aplicativo, confirma por releitura do atributo `member`, audita e tenta remover apenas a associacao criada pela operacao caso uma falha aconteca depois da inclusao.
+Em falha depois de inclusoes de grupo, o rollback remove somente memberships efetivamente adicionadas pela operacao atual e depois tenta manter a conta desabilitada. Nao existe exclusao automatica de usuario.
 
 ## Regra de sugestao de grupos
 
-1. pesquisar usuarios ativos por `Title + Department` em todo o escopo de leitura;
-2. excluir `07.Outros` da coorte estatistica por `SuggestionExcludedOuDns`;
-3. excluir o proprio colaborador por login e CN+OU quando aplicavel;
-4. 100% da coorte -> `Comum ao cargo`, marcado;
-5. parcial -> `Excecao`, desmarcado;
-6. `Outros grupos` permite busca manual no AD;
-7. grupo protegido nunca pode ser selecionado;
+1. pesquisar usuarios ativos por `Title + Department` no escopo de leitura;
+2. excluir OUs configuradas em `SuggestionExcludedOuDns` (atualmente `07.Outros`) da coorte;
+3. excluir o proprio colaborador por login/CN quando aplicavel;
+4. 100% da coorte -> `Comum ao cargo`;
+5. parcial -> `Excecao`;
+6. `Outros grupos` permite pesquisa manual no AD;
+7. grupos protegidos nao podem ser selecionados;
 8. efeitos indiretos continuam visiveis.
 
 ## Regras operacionais
 
-- leitura/simulacao no mesmo local: agrupar testes em uma linha PowerShell quando pratico;
+- testes somente leitura/simulacao no mesmo local podem ser agrupados em uma linha PowerShell;
 - alteracao real: uma por vez;
-- antes da escrita real: efeito, rollback e validacao do rollback;
-- indicar onde executar;
+- antes da escrita real: comando, efeito, rollback e validacao;
+- sempre indicar local de execucao;
 - nao usar `iisreset`;
 - nao reiniciar AD/DC/KDC/Netlogon/servidor por causa do projeto;
 - nao restaurar ACL inteira cegamente;
 - nao excluir usuario de teste sem autorizacao separada;
-- `_informatica` e autorizacao humana, nao identidade tecnica.
+- `_informatica` e autorizacao humana, nao identidade tecnica;
+- CriaMovePastas e sistema legado separado; apenas o objeto grupo `_CriaMovePastas` foi autorizado como alvo de teste.
 
 ## Documentacao
 
-- `Docs/CHECKPOINT.md` e o unico checkpoint cumulativo;
-- secoes novas sempre no topo;
-- documentos tematicos sao evoluidos no mesmo arquivo por tema;
-- arquivos redundantes podem ser consolidados/removidos somente depois de incorporar integralmente seu conteudo;
-- nunca reduzir informacao documental;
-- todo pacote deve permitir continuidade por outra LLM ou por humanos sem depender do chat.
+- `Docs/CHECKPOINT.md` e o checkpoint historico cumulativo, mais novo primeiro;
+- nao criar checkpoint por versao;
+- documentos tematicos sao evoluidos no mesmo arquivo;
+- consolidar/remover redundancia somente depois de incorporar integralmente o conteudo;
+- nunca reduzir informacao documental.
 
 ## Proximo gate
 
-1. build da v0.1.9;
+1. build da v0.1.10;
 2. publicar pela branch `release`;
-3. clicar `Aplicar membership piloto`;
-4. confirmar `teste.cadcolab` em `Member Of -> _CriaMovePastas`;
-5. confirmar auditoria `pilot-membership-*`;
-6. aprovado o teste, evoluir a mesma logica para o fluxo normal de criacao com allowlist de grupos.
+3. usar um novo usuario de teste com CN/login/UPN livres em `07.Outros`;
+4. deixar desmarcados grupos comuns fora da allowlist;
+5. adicionar manualmente `_CriaMovePastas`;
+6. pre-validar;
+7. criar o usuario;
+8. confirmar atributos, conta habilitada, membership e auditoria;
+9. manter grupos de producao fora da allowlist nesta fase.
 
----
+## Historico
 
-## Historico anterior consolidado
-
-O historico detalhado completo permanece em `Docs/CHECKPOINT.md`. Este arquivo descreve apenas o estado corrente e o proximo gate, evitando duplicacao desnecessaria.
+Todo o historico de decisoes, comandos, resultados, rollbacks, versoes e investigacoes permanece em `Docs/CHECKPOINT.md`.

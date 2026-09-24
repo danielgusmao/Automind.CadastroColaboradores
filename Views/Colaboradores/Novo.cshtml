@@ -37,7 +37,7 @@
             @if (writeMode)
             {
                 <strong>Piloto de escrita ativo apenas no escopo autorizado.</strong>
-                <span>Criação permitida somente na OU piloto. O teste de membership é isolado ao usuário/grupo piloto configurados; proxyAddresses, pwdLastSet e Microsoft 365 permanecem bloqueados.</span>
+                <span>Criação permitida somente na OU piloto. Memberships podem ser gravadas apenas nos grupos da allowlist de escrita; proxyAddresses, pwdLastSet e Microsoft 365 permanecem bloqueados.</span>
             }
             else
             {
@@ -279,6 +279,10 @@
             {
                 <div class="topdesk-import-status is-warning group-write-warning">Os grupos comuns ao cargo permanecem marcados como sugestão e as exceções ficam desmarcadas. Enquanto GroupWritesEnabled=false, essas seleções são apenas informativas e o usuário não será adicionado a nenhum grupo.</div>
             }
+            else
+            {
+                <div class="topdesk-import-status is-warning group-write-warning">Piloto de memberships ativo. Somente grupos presentes na allowlist de escrita podem permanecer selecionados na pré-validação.</div>
+            }
             <div class="topdesk-import-status" data-groups-status hidden></div>
         </section>
 
@@ -344,7 +348,7 @@
                     <strong>Escopo de escrita:</strong>
                     <code>@writeTargetOu</code>
                 </div>
-                <p>O backend reexecuta todas as validações imediatamente antes da escrita. A conta nasce desabilitada, recebe atributos, senha e manager, é relida e só então é habilitada. Grupos, M365, proxyAddresses e pwdLastSet permanecem bloqueados.</p>
+                <p>O backend reexecuta todas as validações imediatamente antes da escrita. A conta nasce desabilitada, recebe atributos, senha e manager, recebe somente as memberships autorizadas, é relida e só então é habilitada. M365, proxyAddresses e pwdLastSet permanecem bloqueados.</p>
                 <button type="button" class="btn btn-primary btn-wide" data-create-user disabled>Criar usuário piloto no AD</button>
                 <div class="topdesk-import-status" data-create-status hidden></div>
                 <div class="temporary-password" data-temporary-password hidden>

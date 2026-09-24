@@ -16,7 +16,7 @@ Integrações ativas:
 
 ## Escrita no AD
 
-`Automind:Mode=PilotWrite` está ativo somente para criação de usuário na OU piloto `07.Outros`. O fluxo normal de criação ainda mantém `GroupWritesEnabled=false`. A v0.1.9 adiciona um teste isolado de membership real, limitado ao usuário `teste.cadcolab` e ao grupo `_CriaMovePastas` em `07.Outros`. `proxyAddresses`, `pwdLastSet` e Microsoft 365 continuam fora desta etapa.
+`Automind:Mode=PilotWrite` está ativo somente para criação de usuário na OU piloto `07.Outros`. Na v0.1.10, `GroupWritesEnabled=true` apenas para a allowlist de grupos de escrita, atualmente limitada a `_CriaMovePastas` em `07.Outros`. O fluxo de criação pode gravar a membership selecionada antes de habilitar a conta, com releitura, auditoria e rollback somente das memberships criadas pela operação. `proxyAddresses`, `pwdLastSet` e Microsoft 365 continuam fora desta etapa.
 
 ## Configuração principal
 
@@ -43,7 +43,7 @@ Não inserir usuário/senha administrativa no arquivo de configuração.
 5. Consultar grupos reais.
 6. Clicar em `Validar no AD`.
 7. Conferir a prévia.
-8. Em `PilotWrite`, a criação do usuário só pode ocorrer em `07.Outros`; memberships de grupos continuam sem escrita.
+8. Em `PilotWrite`, a criação do usuário só pode ocorrer em `07.Outros`; memberships são gravadas somente para grupos explicitamente autorizados em `GroupWriteAllowedDns`.
 
 ## Publicação
 
@@ -55,9 +55,9 @@ Consulte `Docs/10-FLUXO-GIT-E-PUBLICACAO.md` e `Docs/CHECKPOINT.md`.
 
 ## Pacote atual
 
-- Versao do pacote: `0.1.9`
-- Nome curto: `CadColab-v0.1.9.zip`
-- Estado: `PilotWrite` em `07.Outros`; criação normal ainda sem grupos e teste isolado de membership habilitado somente para `teste.cadcolab` -> `_CriaMovePastas`
+- Versao do pacote: `0.1.10`
+- Nome curto: `CadColab-v0.1.10.zip`
+- Estado: `PilotWrite` em `07.Outros`; memberships integradas ao fluxo normal somente para grupos presentes em `GroupWriteAllowedDns` (atualmente apenas `_CriaMovePastas`)
 - Versionamento de pacote nao cria tag Git automaticamente.
 
 
@@ -74,6 +74,17 @@ A v0.1.7 endurece a coorte de referência: além de excluir o próprio colaborad
 
 O projeto agora declara `net10.0-windows`, coerente com IIS + Active Directory. Isso elimina os avisos CA1416 sem suprimi-los artificialmente. A documentacao de checkpoint foi consolidada em `Docs/CHECKPOINT.md` (unico, cumulativo, mais novo primeiro).
 
+
+## v0.1.10
+
+- teste isolado de membership da v0.1.9 validado com sucesso no AD;
+- membership integrada ao fluxo normal de criação;
+- `GroupWritesEnabled=true` apenas para a allowlist `GroupWriteAllowedDns`;
+- allowlist piloto contém somente `_CriaMovePastas` em `07.Outros`;
+- grupos fora da allowlist bloqueiam a pré-validação;
+- memberships são gravadas antes do enable final e confirmadas por releitura;
+- em falha, rollback remove apenas memberships adicionadas pela própria operação;
+- painel isolado de membership desativado após validação do teste técnico.
 
 ## v0.1.9
 

@@ -216,7 +216,7 @@ public sealed class ColaboradoresController(
                 Company = "Automind",
                 ManagerDistinguishedName = preview.ManagerDistinguishedName ?? string.Empty,
                 OuDistinguishedName = preview.OuDistinguishedName ?? string.Empty,
-                GroupDns = []
+                GroupDns = context.RequestedGroups.ToList()
             };
 
             return Json(await adWriter.CreateUserAsync(command, cancellationToken));
@@ -297,6 +297,10 @@ public sealed class ColaboradoresController(
             .Where(dn => !resolvedByDn.TryGetValue(dn, out var group) || group.Protegido)
             .ToList();
 
+        var writeUnauthorizedGroups = adWriter.GroupWritesEnabled
+            ? rawRequestedGroups.Where(dn => !adWriter.GroupWriteAllowedDns.Contains(dn)).ToList()
+            : new List<string>();
+
         var requestedGroups = rawRequestedGroups
             .Where(dn => resolvedByDn.TryGetValue(dn, out var group) && !group.Protegido)
             .ToList();
@@ -317,7 +321,9 @@ public sealed class ColaboradoresController(
         foreach (var suggestion in suggestions)
             suggestion.Selecionado = !suggestion.Protegido && requestedGroups.Contains(suggestion.DistinguishedName, StringComparer.OrdinalIgnoreCase);
 
-        var groupsPassed = invalidRequestedGroups.Count == 0 && groups.AllExist;
+        var groupsPassed = invalidRequestedGroups.Count == 0
+            && writeUnauthorizedGroups.Count == 0
+            && groups.AllExist;
         var checks = new List<AdValidationCheck>
         {
             Check("ticket", "Chamado TOPdesk válido", ticketValidation.Valid, ticketValidation.Message),
@@ -334,7 +340,7 @@ public sealed class ColaboradoresController(
             Check("manager", "Superior localizado", manager.Found && !manager.Ambiguous, ManagerMessage(manager)),
             Check("ou", "OU válida", ou.Exists && ou.Allowed,
                 ou.Exists && ou.Allowed ? $"OU confirmada: {ou.DisplayName}." : "A OU não existe no AD ou não está na lista permitida."),
-            Check("groups", "Grupos válidos", groupsPassed, GroupMessage(requestedGroups, groups, invalidRequestedGroups))
+            Check("groups", "Grupos válidos", groupsPassed, GroupMessage(requestedGroups, groups, invalidRequestedGroups, writeUnauthorizedGroups, adWriter.GroupWritesEnabled))
         };
 
         var valid = checks.All(x => x.Passed);
@@ -363,6 +369,7 @@ public sealed class ColaboradoresController(
         ViewBag.PilotMembershipUserDn = adWriter.PilotMembershipUserDn;
         ViewBag.PilotMembershipGroupDn = adWriter.PilotMembershipGroupDn;
         ViewBag.WriteAllowedOuDns = adWriter.WriteAllowedOuDns.ToArray();
+        ViewBag.GroupWriteAllowedDns = adWriter.GroupWriteAllowedDns.ToArray();
 
         try
         {
@@ -514,12 +521,19 @@ public sealed class ColaboradoresController(
     private static string GroupMessage(
         IReadOnlyCollection<string> requestedGroups,
         AdGroupValidation result,
-        IReadOnlyCollection<string> invalidRequestedGroups)
+        IReadOnlyCollection<string> invalidRequestedGroups,
+        IReadOnlyCollection<string> writeUnauthorizedGroups,
+        bool groupWritesEnabled)
     {
         if (invalidRequestedGroups.Count > 0)
             return $"Há grupo(s) não localizado(s) ou protegido(s): {string.Join("; ", invalidRequestedGroups)}";
-        if (requestedGroups.Count == 0) return "Nenhum grupo selecionado; o piloto pode seguir sem escrita de memberships.";
-        if (result.AllExist) return $"{requestedGroups.Count} grupo(s) confirmado(s) no AD. A criação piloto continuará bloqueando escrita de grupos.";
+        if (writeUnauthorizedGroups.Count > 0)
+            return $"Há grupo(s) válido(s), porém fora da allowlist de escrita do piloto: {string.Join("; ", writeUnauthorizedGroups)}";
+        if (requestedGroups.Count == 0) return "Nenhum grupo selecionado; o piloto pode seguir sem memberships.";
+        if (result.AllExist)
+            return groupWritesEnabled
+                ? $"{requestedGroups.Count} grupo(s) confirmado(s) e autorizado(s) para escrita no piloto."
+                : $"{requestedGroups.Count} grupo(s) confirmado(s) no AD; memberships permanecem bloqueadas.";
         return $"Grupos não localizados: {string.Join("; ", result.MissingGroups)}";
     }
 

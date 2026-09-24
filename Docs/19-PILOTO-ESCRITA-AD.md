@@ -1,3 +1,9 @@
+## v0.1.10 - transição do teste isolado para o fluxo completo
+
+O teste real da v0.1.9 foi confirmado no AD e encerrou a necessidade do painel isolado. A v0.1.10 integra membership ao provisionamento normal, ainda com allowlist de escrita restrita a `_CriaMovePastas` em `07.Outros`.
+
+---
+
 ## v0.1.9 - membership real isolada
 
 Apos a delegacao `WriteProperty(member)` no grupo `_CriaMovePastas`, a v0.1.9 adiciona um painel especifico para validar a escrita pela propria gMSA do App Pool. Usuario e grupo sao fixados em configuracao e a operacao exige confirmacao explicita.

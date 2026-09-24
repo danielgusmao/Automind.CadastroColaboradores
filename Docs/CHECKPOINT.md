@@ -1,3 +1,36 @@
+## 24/09/2026 - v0.1.10 - membership integrada ao provisionamento
+
+### Resultado confirmado da v0.1.9
+- usuário `teste.cadcolab` foi incluído com sucesso no grupo `CN=_CriaMovePastas,OU=07.Outros,OU=Automind,DC=automind,DC=com,DC=br` pela própria aplicação executando como `AUTOMIND\gMSA_CadColab$`;
+- a aplicação confirmou a associação por releitura do atributo `member`;
+- ADUC confirmou nos dois sentidos: usuário em `Member Of` e usuário listado em `Members` do grupo;
+- delegação `WriteProperty(member)` no grupo piloto está funcional.
+
+### Evolução v0.1.10
+- `GroupWritesEnabled=true`, porém **somente** para DNs presentes em `Automind:Provisioning:GroupWriteAllowedDns`;
+- allowlist atual contém exclusivamente `_CriaMovePastas` em `07.Outros`;
+- fluxo normal de criação recebe os grupos selecionados validados pelo backend;
+- grupos válidos no AD, mas fora da allowlist de escrita, bloqueiam a pré-validação;
+- membership é adicionada depois de atributos/senha/manager e antes do enable final;
+- releitura do `member` confirma cada associação;
+- auditoria registra os DNs dos grupos;
+- se ocorrer falha depois de alguma inclusão, rollback tenta remover somente as memberships adicionadas por aquela operação;
+- objeto do usuário continua sendo mantido/desabilitado em falha; não há exclusão automática;
+- painel isolado `MEMBERSHIP PILOTO` foi desativado após o sucesso técnico.
+
+### Próximo teste limpo
+1. build local;
+2. publicar pelo fluxo Git/Azure;
+3. usar um usuário de teste novo, com CN/login/UPN livres, sempre em `07.Outros`;
+4. deixar desmarcados os grupos comuns ao cargo que não fazem parte da allowlist de escrita;
+5. adicionar manualmente `_CriaMovePastas`;
+6. pré-validar;
+7. criar o usuário;
+8. confirmar atributos, conta habilitada, membership em `_CriaMovePastas` e auditoria;
+9. não expandir a allowlist para grupos de produção nesta fase.
+
+---
+
 # CHECKPOINT CUMULATIVO - MAIS NOVO PRIMEIRO
 
 > Arquivo unico de continuidade/historico. Novas secoes entram no topo. O conteudo historico e incorporado neste mesmo arquivo; nao criar arquivos de checkpoint por versao.

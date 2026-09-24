@@ -21,6 +21,7 @@ public sealed class AdConnectionFactory(IConfiguration configuration)
 
     public IReadOnlySet<string> AllowedOuDns => GetSet("Automind:Ad:AllowedOuDns");
     public IReadOnlySet<string> WriteAllowedOuDns => GetSet("Automind:Provisioning:WriteAllowedOuDns");
+    public IReadOnlySet<string> GroupWriteAllowedDns => GetSet("Automind:Provisioning:GroupWriteAllowedDns");
     public IReadOnlySet<string> ProtectedGroupNames => GetSet("Automind:Ad:ProtectedGroupNames");
 
     public DirectoryEntry Open(string distinguishedName)

@@ -1,3 +1,11 @@
+## 14:29 - membership real confirmada e avanço para integração
+
+- usuário `teste.cadcolab` confirmado como membro de `_CriaMovePastas` tanto pela aba `Members` do grupo quanto pela aba `Member Of` do usuário;
+- aplicação confirmou releitura da membership;
+- decisão: avançar para escrita de memberships no fluxo normal, mantendo escopo de teste em `07.Outros` e allowlist de grupo limitada a `_CriaMovePastas`.
+
+---
+
 ## 14:xx - autorizacao e delegacao real de membership piloto
 
 - responsavel esclareceu que deseja testar a associacao do usuario a um grupo real dentro do laboratorio `07.Outros`;

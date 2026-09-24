@@ -1,3 +1,9 @@
+## v0.1.10 - rollback de memberships do provisionamento
+
+Em falha após a inclusão em grupos, o serviço guarda somente os DNs adicionados pela operação atual e tenta removê-los em ordem reversa. Não restaura ACL, não remove grupos preexistentes e não exclui automaticamente o usuário. Em seguida mantém/confirma a conta desabilitada para revisão.
+
+---
+
 ## v0.1.9 - rollback da membership piloto
 
 Se a operacao piloto tiver adicionado `teste.cadcolab` a `_CriaMovePastas`, o rollback funcional remove somente essa associacao. A implementacao tenta esse rollback automaticamente se a falha ocorrer depois da inclusao. A ACE `WriteProperty(member)` do grupo deve ser removida separadamente apenas quando o teste/fase terminar, usando `RemoveAccessRuleSpecific`.
