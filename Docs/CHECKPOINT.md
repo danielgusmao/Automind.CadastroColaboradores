@@ -860,3 +860,26 @@ A tela de Novo colaborador passa a tornar explicita a restricao do Active Direct
 Caso que motivou o ajuste: `teste.provisionamento` ultrapassou 20 caracteres e foi ajustado manualmente para `teste.cadcolab`.
 
 Nenhuma escrita AD foi habilitada; `Mode=ReadOnly` permanece.
+
+
+## 24/09/2026 - V060 / pacote v0.1.3: PilotWrite autorizado e ativado no pacote
+
+Autorizacao explicita recebida: `pode gerar, vamos para o PilotWrite`.
+
+Alteracoes da `v0.1.3`:
+
+- `Automind:Mode` alterado de `ReadOnly` para `PilotWrite`;
+- `WriteAllowedOuDns` permanece contendo somente `OU=07.Outros,OU=Automind,DC=automind,DC=com,DC=br`;
+- `GroupWritesEnabled=false`;
+- grupos comuns continuam marcados como sugestao, mas o comando de criacao envia `GroupDns=[]`;
+- `Microsoft365.Enabled=false`;
+- `proxyAddresses` e `pwdLastSet` continuam fora do contrato;
+- `VERSION.txt` atualizado para `CadColab 0.1.3`;
+- `.csproj` atualizado com `Version=0.1.3`;
+- `VERSION.txt` configurado para ser copiado para output/publish, corrigindo a ausencia observada no servidor;
+- rollback funcional primario: restaurar `Automind:Mode=ReadOnly` e publicar;
+- nenhuma tag Git deve ser criada automaticamente.
+
+Pre-check anterior a esta ativacao confirmou: App Pool iniciado como gMSA, `Test-ADServiceAccount=True`, OU piloto existente, gMSA no grupo tecnico, HTTP 200 e escopo de escrita restrito a uma unica OU.
+
+A partir da publicacao da `v0.1.3`, o botao de criacao real fica disponivel somente depois de pre-validacao integra e selecao de `07.Outros`. A primeira criacao deve ser de usuario ficticio e tratada como ALTERACAO REAL com validacao imediata e rollback preparado.

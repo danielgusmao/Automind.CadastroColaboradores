@@ -15,7 +15,7 @@ O codigo desta etapa foi preparado para permitir criacao somente quando **todas*
 - nenhum grupo selecionado;
 - auditoria local gravavel antes da primeira alteracao no AD.
 
-A configuracao entregue neste pacote continua com `Automind:Mode=ReadOnly`. Portanto, **o pacote nao ativa escrita apenas por ser compilado ou publicado**.
+A configuracao entregue na `v0.1.3` passa para `Automind:Mode=PilotWrite` por autorizacao explicita do responsavel. Portanto, **a publicacao desta versao habilita a criacao real somente dentro do escopo piloto e sob todas as travas descritas neste documento**.
 
 ## 2. Estado de infraestrutura ja validado
 
@@ -92,7 +92,8 @@ Antes de chamar o servico de escrita, o endpoint:
 - consulta novamente o AD para confirmar que ele ainda pertence ao grupo autorizado;
 - repete a pre-validacao completa;
 - confirma a OU na allowlist de escrita;
-- bloqueia se existir qualquer grupo selecionado.
+- permite que os grupos comuns permaneçam marcados apenas como sugestao visual quando `GroupWritesEnabled=false`;
+- envia `GroupDns=[]` ao servico de escrita, portanto nenhuma membership e alterada no piloto.
 
 As respostas do endpoint usam `Cache-Control: no-store` e `Pragma: no-cache` porque uma resposta de sucesso pode conter a senha temporaria.
 
@@ -126,11 +127,11 @@ Continuam fora do fluxo:
 - Teams;
 - escrita no TOPdesk.
 
-## 5. Configuracao preparada, mas inativa
+## 5. Configuracao ativa para o piloto controlado
 
 O `appsettings.json` deste pacote contem:
 
-- `Automind:Mode=ReadOnly`;
+- `Automind:Mode=PilotWrite`;
 - `07.Outros` adicionada a `AllowedOuDns` para permitir leitura/pre-validacao do piloto;
 - `Automind:Provisioning:TechnicalIdentity=AUTOMIND\gMSA_CadColab$`;
 - `WriteAllowedOuDns` contendo **somente** `07.Outros`;
@@ -142,30 +143,32 @@ O `appsettings.json` deste pacote contem:
 
 A allowlist de escrita e independente da allowlist de leitura. Adicionar uma OU a `AllowedOuDns` nao autoriza escrita nela. A pre-validacao continua mostrando apenas `OU valida`; o backend de criacao revalida `WriteAllowedOuDns` e bloqueia qualquer OU fora de `07.Outros`, sem necessidade de um indicador temporario na tela.
 
-## 6. Travas que permanecem antes do primeiro usuario
+## 6. Gates cumpridos antes da ativacao `PilotWrite`
 
-Nao ativar `PilotWrite` ainda. Antes disso:
+Antes da `v0.1.3`, foram confirmados:
 
-1. compilar o pacote em maquina com .NET 10 SDK;
-2. revisar o resultado do build;
-3. publicar mantendo `Mode=ReadOnly`;
-4. validar HTTP e leituras AD apos a publicacao;
-5. validar que a gMSA consegue criar/anexar o arquivo de auditoria local, sem escrever no AD;
-6. confirmar que `07.Outros` aparece na tela e continua sendo a unica OU em `WriteAllowedOuDns`;
-7. preparar backup/hash do `appsettings.json` implantado;
-8. preparar alteracao real de `ReadOnly` para `PilotWrite`, efeito esperado, rollback e validacao;
-9. obter autorizacao explicita;
-10. somente depois executar um usuario ficticio em `07.Outros`.
+1. build local em .NET 10 concluido com 0 erros;
+2. publicacao e testes em `ReadOnly` realizados no servidor;
+3. HTTP 200 e worker IIS executando como `AUTOMIND\gMSA_CadColab$`;
+4. `Test-ADServiceAccount gMSA_CadColab=True`;
+5. `07.Outros` existe e e a unica OU em `WriteAllowedOuDns`;
+6. `gMSA_CadColab$` continua no grupo tecnico;
+7. `GroupWritesEnabled=false`;
+8. `Microsoft365.Enabled=false`;
+9. limite de 20 caracteres do `sAMAccountName` validado na interface e no backend;
+10. autorizacao explicita recebida para gerar a `v0.1.3` em `PilotWrite`.
+
+Observacao: o diretorio/arquivo de auditoria ainda pode nao existir antes da primeira criacao. O servico tenta cria-lo **antes da primeira escrita no AD**; se a auditoria nao puder ser iniciada, o fluxo falha antes de criar o usuario.
 
 ## 7. Rollback de codigo/configuracao
 
-### Antes de ativar `PilotWrite`
+### Com `PilotWrite` ativo
 
-O estado seguro e `Mode=ReadOnly`. Se o pacote novo apresentar problema funcional, restaurar a publicacao anterior pelo processo de deploy/Git aprovado, sem alterar gMSA, ACL piloto ou grupo tecnico automaticamente.
+O primeiro bloqueio de emergencia da aplicacao e restaurar `Automind:Mode=ReadOnly` e publicar essa configuracao. Isso bloqueia novas criacoes sem remover gMSA, ACL piloto ou grupo tecnico.
 
-### Depois de uma futura ativacao de `PilotWrite`
+Se a `v0.1.3` apresentar problema funcional antes de qualquer usuario ser criado, restaurar a publicacao anterior `v0.1.2` pelo fluxo Git/Azure aprovado.
 
-O primeiro bloqueio de emergencia da aplicacao sera restaurar `Automind:Mode=ReadOnly`. Esse rollback de configuracao deve ser tratado como uma alteracao real separada e validada.
+Se um usuario piloto ja tiver sido criado, voltar para `ReadOnly` primeiro e tratar o usuario criado separadamente conforme o rollback abaixo.
 
 A restauracao integral do backup IIS `CadColab-Pre-gMSA-20260924-082229` nao e o rollback primario da aplicacao e nao deve ser executada automaticamente.
 
@@ -195,10 +198,10 @@ O pacote preparado foi compilado com sucesso em `net10.0`, sem erros e com 15 av
 
 Apos o build foi confirmado:
 
-- `Automind:Mode=ReadOnly`;
+- `Automind:Mode=PilotWrite`;
 - uma unica OU na allowlist de escrita (`07.Outros`);
 - escrita de grupos desabilitada;
 - Microsoft 365 desabilitado;
 - servicos de escrita AD e auditoria presentes.
 
-Portanto, a proxima etapa permitida e publicar a nova versao **ainda em ReadOnly** e validar o comportamento no servidor antes de qualquer ativacao `PilotWrite`.
+Esses gates foram concluídos. A `v0.1.3` e a primeira versao preparada para publicacao com `Automind:Mode=PilotWrite`, mantendo o escopo de escrita limitado a `07.Outros`.

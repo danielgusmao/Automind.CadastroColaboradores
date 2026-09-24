@@ -60,3 +60,8 @@ Consulte `Docs/10-FLUXO-GIT-E-PUBLICACAO.md` e `Docs/CHECKPOINT.md`.
 - Nome curto: `CadColab-v0.1.2.zip`
 - Estado: `ReadOnly`
 - Versionamento de pacote nao cria tag Git automaticamente.
+
+
+## Estado da linha piloto - v0.1.3
+
+`Automind:Mode=PilotWrite` esta ativo nesta versao por autorizacao explicita. A escrita permanece restrita a `07.Outros`; grupos, Microsoft 365, Teams, `proxyAddresses` e `pwdLastSet` continuam bloqueados.

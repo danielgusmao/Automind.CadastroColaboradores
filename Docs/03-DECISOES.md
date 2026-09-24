@@ -137,3 +137,14 @@
 - a seguranca de escrita da OU continua obrigatoria no backend por `WriteAllowedOuDns`, atualmente restrita a `07.Outros`;
 - selecionar outra OU por engano pode passar a validacao de leitura, mas a criacao real deve continuar bloqueada pelo escopo de escrita do backend.
 
+
+
+## 24/09/2026 - ativacao do PilotWrite na v0.1.3
+
+- autorizacao explicita recebida para gerar a `v0.1.3` com `Automind:Mode=PilotWrite`;
+- a ativacao permite escrita real apenas na OU `07.Outros`;
+- `GroupWritesEnabled=false` permanece; sugestoes de grupos podem ficar marcadas visualmente, mas `GroupDns=[]` e nenhuma membership e gravada;
+- Microsoft 365, Teams, TOPdesk, `proxyAddresses` e `pwdLastSet` continuam sem escrita;
+- o servico de auditoria deve conseguir iniciar o arquivo local antes da primeira escrita AD; se isso falhar, a criacao deve parar antes de criar o usuario;
+- rollback primario da aplicacao: voltar `Automind:Mode=ReadOnly` e publicar;
+- a versao `0.1.3` passa a ser registrada no projeto/pacote, sem criar tag Git automaticamente.

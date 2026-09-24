@@ -554,3 +554,20 @@ Rollback de software antes do primeiro piloto:
 Quando `PilotWrite` for futuramente ativado, a primeira acao de contencao da aplicacao sera voltar o modo para `ReadOnly`. Essa mudanca de configuracao deve ser tratada como alteracao real separada.
 
 Se um usuario piloto for criado e uma etapa falhar, o codigo tenta manter a conta desabilitada. A conta nao e excluida automaticamente. Exclusao de usuario ficticio continua dependendo de autorizacao explicita; para usuario real, o procedimento e desabilitar, parar e revisar.
+
+
+## 27. Rollback da ativacao PilotWrite - v0.1.3
+
+Estado ativado no pacote `CadColab-v0.1.3`: `Automind:Mode=PilotWrite`.
+
+Contencao primaria se houver qualquer anomalia:
+
+1. nao executar nova criacao;
+2. alterar somente `Automind:Mode` de `PilotWrite` para `ReadOnly`;
+3. publicar a configuracao pelo fluxo Git/Azure aprovado;
+4. validar HTTP 200 e confirmar que a interface voltou a `SOMENTE LEITURA`;
+5. nao remover gMSA, grupo tecnico nem as 16 ACEs de `07.Outros` como parte desse rollback de aplicacao.
+
+Se nenhum usuario tiver sido criado, esse rollback encerra a exposicao de escrita.
+
+Se um usuario piloto tiver sido criado ou parcialmente criado, primeiro bloquear novas criacoes com `ReadOnly` e depois aplicar o procedimento de rollback do usuario ficticio, mantendo/desabilitando a conta antes de qualquer exclusao. Exclusao continua exigindo autorizacao explicita separada.
