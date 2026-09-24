@@ -103,6 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const token = form.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
     const groupsUrl = form.dataset.groupsUrl;
+    const manualGroupsUrl = form.dataset.manualGroupsUrl;
     const validationUrl = form.dataset.validationUrl;
     const createUrl = form.dataset.createUrl;
     const writeEnabled = form.dataset.writeEnabled === 'true';
@@ -113,6 +114,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const groupsSummary = form.querySelector('[data-groups-summary]');
     const groupsEmpty = form.querySelector('[data-groups-empty]');
     const groupsStatus = form.querySelector('[data-groups-status]');
+    const manualGroupQuery = form.querySelector('[data-manual-group-query]');
+    const manualGroupResults = form.querySelector('[data-manual-group-results]');
+    const manualGroupSelected = form.querySelector('[data-manual-group-selected]');
+    const manualGroupChips = form.querySelector('[data-manual-group-chips]');
+    const manualGroupsStatus = form.querySelector('[data-manual-groups-status]');
     const validationStatus = form.querySelector('[data-validation-status]');
     const preview = form.querySelector('[data-ad-preview]');
     const createButton = form.querySelector('[data-create-user]');
@@ -219,15 +225,15 @@ document.addEventListener('DOMContentLoaded', () => {
             setStatus(createStatus, 'A pré-validação passou, mas a OU selecionada não pertence ao escopo de escrita do piloto.', 'warning');
         } else {
             const groupNote = !groupWritesEnabled && selectedGroupDns().length > 0
-                ? ' Os grupos marcados permanecem somente como sugestão e não serão gravados.'
+                ? ' Os grupos selecionados permanecem somente como prévia e o usuário não será adicionado a eles.'
                 : '';
             setStatus(createStatus, `Pré-validação íntegra e escopo piloto confirmado. A criação permanece dependente do clique e da confirmação explícita.${groupNote}`, 'success');
         }
     };
 
     const updateGroupSummary = (groups) => {
-        const common = groups.filter((g) => !g.protegido && g.encontradoEm === g.totalComparados).length;
-        const exceptions = groups.filter((g) => !g.protegido && g.encontradoEm !== g.totalComparados).length;
+        const common = groups.filter((g) => !g.protegido && g.totalComparados > 0 && g.encontradoEm === g.totalComparados).length;
+        const exceptions = groups.filter((g) => !g.protegido && (g.totalComparados === 0 || g.encontradoEm !== g.totalComparados)).length;
         const protectedCount = groups.filter((g) => g.protegido).length;
 
         const commonEl = form.querySelector('[data-common-count]');
@@ -236,6 +242,68 @@ document.addEventListener('DOMContentLoaded', () => {
         if (commonEl) commonEl.textContent = common;
         if (exceptionEl) exceptionEl.textContent = exceptions;
         if (protectedEl) protectedEl.textContent = protectedCount;
+    };
+
+    const appendGroupSection = (title, groups, type) => {
+        if (!groupsBody || groups.length === 0) return;
+
+        const section = document.createElement('tr');
+        section.className = 'group-section-row';
+        section.innerHTML = `<td colspan="4">${escapeHtml(title)}</td>`;
+        groupsBody.appendChild(section);
+
+        groups.forEach((g) => {
+            const common = type === 'common';
+            const protectedGroup = type === 'protected';
+            const rowClass = protectedGroup ? 'row-protected' : (common ? 'row-common' : '');
+            const statusClass = protectedGroup ? 'status-pill status-pill-danger' : (common ? 'status-pill status-pill-success' : 'status-pill');
+            const statusText = protectedGroup ? 'Protegido' : (common ? 'Comum ao cargo' : 'Exceção');
+            const indirect = Array.isArray(g.efeitosIndiretos) && g.efeitosIndiretos.length > 0
+                ? `<small class="group-indirect">Acesso indireto: ${escapeHtml(g.efeitosIndiretos.join(', '))}</small>`
+                : '';
+            const disabled = protectedGroup ? 'disabled' : '';
+            const isChecked = g.selecionado && !protectedGroup ? 'checked' : '';
+
+            const tr = document.createElement('tr');
+            tr.className = rowClass;
+            tr.innerHTML = `
+                <td><input class="group-checkbox" type="checkbox" value="${escapeHtml(g.distinguishedName)}" ${isChecked} ${disabled} /></td>
+                <td>
+                    <strong>${escapeHtml(g.nome)}</strong>
+                    <small class="group-meta">${escapeHtml(g.categoria)} · ${escapeHtml(g.escopo)}</small>
+                    ${indirect}
+                </td>
+                <td><span class="incidence">${g.encontradoEm} / ${g.totalComparados}</span></td>
+                <td><span class="${statusClass}">${statusText}</span></td>`;
+            groupsBody.appendChild(tr);
+        });
+    };
+
+    const updateManualSelectedVisibility = () => {
+        if (!manualGroupSelected || !manualGroupChips) return;
+        manualGroupSelected.hidden = manualGroupChips.querySelectorAll('[data-manual-group-dn]').length === 0;
+    };
+
+    const suggestedDns = () => new Set(Array.from(groupsBody?.querySelectorAll('.group-checkbox') || [])
+        .map((checkbox) => checkbox.value)
+        .filter(Boolean));
+
+    const manualSelectedDns = () => new Set(Array.from(manualGroupChips?.querySelectorAll('[data-manual-group-dn]') || [])
+        .map((element) => element.dataset.manualGroupDn)
+        .filter(Boolean));
+
+    const reconcileManualGroups = () => {
+        if (!manualGroupChips) return;
+        const suggestions = suggestedDns();
+        manualGroupChips.querySelectorAll('[data-manual-group-dn]').forEach((chip) => {
+            const dn = chip.dataset.manualGroupDn || '';
+            if (!suggestions.has(dn)) return;
+            const checkbox = Array.from(groupsBody?.querySelectorAll('.group-checkbox') || [])
+                .find((item) => item.value === dn && !item.disabled);
+            if (checkbox) checkbox.checked = true;
+            chip.remove();
+        });
+        updateManualSelectedVisibility();
     };
 
     const renderGroups = (groups) => {
@@ -254,30 +322,109 @@ document.addEventListener('DOMContentLoaded', () => {
         if (groupsSummary) groupsSummary.hidden = false;
         if (groupsEmpty) groupsEmpty.hidden = true;
 
-        groups.forEach((g) => {
-            const common = !g.protegido && g.encontradoEm === g.totalComparados;
-            const rowClass = g.protegido ? 'row-protected' : (common ? 'row-common' : '');
-            const statusClass = g.protegido ? 'status-pill status-pill-danger' : (common ? 'status-pill status-pill-success' : 'status-pill');
-            const statusText = g.protegido ? 'Protegido' : (common ? 'Comum ao cargo' : 'Exceção');
-            const indirect = Array.isArray(g.efeitosIndiretos) && g.efeitosIndiretos.length > 0
-                ? `<small class="group-indirect">Acesso indireto: ${escapeHtml(g.efeitosIndiretos.join(', '))}</small>`
-                : '';
-            const disabled = g.protegido ? 'disabled' : '';
-            const isChecked = g.selecionado && !g.protegido ? 'checked' : '';
+        const common = groups.filter((g) => !g.protegido && g.totalComparados > 0 && g.encontradoEm === g.totalComparados);
+        const exceptions = groups.filter((g) => !g.protegido && (g.totalComparados === 0 || g.encontradoEm !== g.totalComparados));
+        const protectedGroups = groups.filter((g) => g.protegido);
 
-            const tr = document.createElement('tr');
-            tr.className = rowClass;
-            tr.innerHTML = `
-                <td><input class="group-checkbox" type="checkbox" value="${escapeHtml(g.distinguishedName)}" ${isChecked} ${disabled} /></td>
-                <td>
-                    <strong>${escapeHtml(g.nome)}</strong>
-                    <small class="group-meta">${escapeHtml(g.categoria)} · ${escapeHtml(g.escopo)}</small>
-                    ${indirect}
-                </td>
-                <td><span class="incidence">${g.encontradoEm} / ${g.totalComparados}</span></td>
-                <td><span class="${statusClass}">${statusText}</span></td>`;
-            groupsBody.appendChild(tr);
+        appendGroupSection('Grupos comuns ao cargo', common, 'common');
+        appendGroupSection('Exceções encontradas', exceptions, 'exception');
+        appendGroupSection('Grupos protegidos', protectedGroups, 'protected');
+        reconcileManualGroups();
+    };
+
+    const addManualGroup = (group) => {
+        if (!manualGroupChips || !group || group.protegido || !group.distinguishedName) return;
+        const dn = group.distinguishedName;
+        if (suggestedDns().has(dn)) {
+            const checkbox = Array.from(groupsBody?.querySelectorAll('.group-checkbox') || [])
+                .find((item) => item.value === dn && !item.disabled);
+            if (checkbox) checkbox.checked = true;
+            invalidateValidation();
+            setStatus(manualGroupsStatus, 'O grupo já estava nas sugestões e foi selecionado.', 'success');
+            return;
+        }
+        if (manualSelectedDns().has(dn)) {
+            setStatus(manualGroupsStatus, 'Esse grupo já foi adicionado manualmente.', 'warning');
+            return;
+        }
+
+        const chip = document.createElement('div');
+        chip.className = 'manual-group-chip';
+        chip.dataset.manualGroupDn = dn;
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'group-checkbox manual-group-checkbox';
+        checkbox.value = dn;
+        checkbox.checked = true;
+        checkbox.hidden = true;
+
+        const text = document.createElement('span');
+        const name = document.createElement('strong');
+        name.textContent = group.nome || dn;
+        const meta = document.createElement('small');
+        meta.textContent = `${group.categoria || 'Grupo'} · ${group.escopo || ''}`.replace(/ · $/, '');
+        text.append(name, meta);
+
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'manual-group-remove';
+        remove.setAttribute('aria-label', `Remover ${group.nome || 'grupo'}`);
+        remove.textContent = '×';
+        remove.addEventListener('click', () => {
+            chip.remove();
+            updateManualSelectedVisibility();
+            invalidateValidation();
         });
+
+        chip.append(checkbox, text, remove);
+        manualGroupChips.appendChild(chip);
+        updateManualSelectedVisibility();
+        invalidateValidation();
+        setStatus(manualGroupsStatus, 'Grupo adicionado manualmente à seleção.', 'success');
+    };
+
+    const renderManualResults = (groups) => {
+        if (!manualGroupResults) return;
+        manualGroupResults.innerHTML = '';
+        const list = Array.isArray(groups) ? groups : [];
+        if (list.length === 0) {
+            manualGroupResults.hidden = true;
+            return;
+        }
+
+        const knownSuggested = suggestedDns();
+        const knownManual = manualSelectedDns();
+        list.forEach((group) => {
+            const item = document.createElement('div');
+            item.className = `manual-group-result${group.protegido ? ' is-protected' : ''}`;
+
+            const copy = document.createElement('div');
+            const name = document.createElement('strong');
+            name.textContent = group.nome || group.distinguishedName;
+            const meta = document.createElement('small');
+            meta.textContent = `${group.categoria || 'Grupo'} · ${group.escopo || ''}`.replace(/ · $/, '');
+            copy.append(name, meta);
+            if (Array.isArray(group.efeitosIndiretos) && group.efeitosIndiretos.length > 0) {
+                const indirect = document.createElement('small');
+                indirect.className = 'group-indirect';
+                indirect.textContent = `Acesso indireto: ${group.efeitosIndiretos.join(', ')}`;
+                copy.appendChild(indirect);
+            }
+
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'btn btn-secondary btn-small';
+            const alreadyListed = knownSuggested.has(group.distinguishedName);
+            const alreadyManual = knownManual.has(group.distinguishedName);
+            button.disabled = Boolean(group.protegido || alreadyListed || alreadyManual);
+            button.textContent = group.protegido ? 'Protegido' : (alreadyListed ? 'Já sugerido' : (alreadyManual ? 'Já adicionado' : 'Selecionar'));
+            if (!button.disabled) button.addEventListener('click', () => addManualGroup(group));
+
+            item.append(copy, button);
+            manualGroupResults.appendChild(item);
+        });
+        manualGroupResults.hidden = false;
     };
 
     const postJson = async (url, body) => {
@@ -328,9 +475,11 @@ document.addEventListener('DOMContentLoaded', () => {
     syncTicket();
 
     form.addEventListener('input', (event) => {
+        if (event.target.matches('[data-manual-group-query]')) return;
         if (event.target.matches('input:not([type="hidden"]), select')) invalidateValidation();
     });
     form.addEventListener('change', (event) => {
+        if (event.target.matches('[data-manual-group-query]')) return;
         if (event.target.matches('input, select')) invalidateValidation();
     });
 
@@ -352,7 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
         button.disabled = true;
         button.textContent = 'Consultando AD...';
         try {
-            const result = await postJson(groupsUrl, { cargo, departamento });
+            const result = await postJson(groupsUrl, { cargo, departamento, login: fieldValue('Login') });
             if (!result.success) {
                 setStatus(groupsStatus, result.message || 'Não foi possível consultar os grupos.', 'error');
                 return;
@@ -370,6 +519,48 @@ document.addEventListener('DOMContentLoaded', () => {
             button.disabled = false;
             button.textContent = original;
         }
+    });
+
+    const searchManualGroups = async () => {
+        const termo = (manualGroupQuery?.value || '').trim();
+        clearStatus(manualGroupsStatus);
+        if (manualGroupResults) manualGroupResults.hidden = true;
+        if (termo.length < 2) {
+            setStatus(manualGroupsStatus, 'Digite pelo menos 2 caracteres para pesquisar.', 'warning');
+            return;
+        }
+
+        const button = form.querySelector('[data-search-manual-groups]');
+        const original = button?.textContent || 'Buscar no AD';
+        if (button) {
+            button.disabled = true;
+            button.textContent = 'Buscando...';
+        }
+        try {
+            const result = await postJson(manualGroupsUrl, { termo });
+            if (!result.success) {
+                setStatus(manualGroupsStatus, result.message || 'Não foi possível pesquisar os grupos.', 'error');
+                return;
+            }
+            renderManualResults(result.groups || []);
+            setStatus(manualGroupsStatus,
+                (result.groups || []).length > 0 ? `${result.groups.length} grupo(s) encontrado(s) no AD.` : 'Nenhum grupo encontrado para esse nome.',
+                (result.groups || []).length > 0 ? 'success' : 'warning');
+        } catch (error) {
+            setStatus(manualGroupsStatus, `Falha ao pesquisar o Active Directory (${error.message}).`, 'error');
+        } finally {
+            if (button) {
+                button.disabled = false;
+                button.textContent = original;
+            }
+        }
+    };
+
+    form.querySelector('[data-search-manual-groups]')?.addEventListener('click', searchManualGroups);
+    manualGroupQuery?.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        searchManualGroups();
     });
 
     form.querySelector('[data-validate-ad]')?.addEventListener('click', async (event) => {

@@ -76,8 +76,8 @@ Antes de `git add .`, revisar sempre `git status --short`. A pasta local `artifa
 A partir desta rodada, a regra anterior de "sem versionamento numerico" fica substituida **para os pacotes de atualizacao**:
 
 - todo pacote completo deve usar nome curto: `CadColab-vX.Y.Z.zip`;
-- versao atual da linha piloto: `0.1.3`;
-- ajustes incrementais desta linha usam patch: `0.1.1`, `0.1.2`, `0.1.3` etc.;
+- versao atual da linha piloto: `0.1.4`;
+- ajustes incrementais desta linha usam patch: `0.1.1`, `0.1.2`, `0.1.3`, `0.1.4` etc.;
 - mudanca funcional maior ainda dentro do piloto pode incrementar minor (`0.2.0`);
 - `VERSION.txt` na raiz registra a versao do pacote;
 - o projeto, solution, namespaces e nomes tecnicos existentes **nao devem ser renomeados** por causa desta regra;

@@ -50,18 +50,18 @@ Não inserir usuário/senha administrativa no arquivo de configuração.
 
 Branch atual: `release`.
 
-Nesta fase não há tag nem versionamento numérico. Fazer apenas commit e push para os remotes existentes `origin` (GitHub) e `azure` (Azure DevOps). O pipeline/release existente não deve ser alterado.
+Nesta fase não há tag Git automática. Os pacotes usam versão numérica curta; fazer commit e push para os remotes existentes `origin` (GitHub) e `azure` (Azure DevOps). O pipeline/release existente não deve ser alterado.
 
 Consulte `Docs/10-FLUXO-GIT-E-PUBLICACAO.md` e `Docs/CHECKPOINT.md`.
 
 ## Pacote atual
 
-- Versao do pacote: `0.1.2`
-- Nome curto: `CadColab-v0.1.2.zip`
-- Estado: `ReadOnly`
+- Versao do pacote: `0.1.4`
+- Nome curto: `CadColab-v0.1.4.zip`
+- Estado: `PilotWrite` para criação de usuário somente em `07.Outros`; escrita de grupos desabilitada
 - Versionamento de pacote nao cria tag Git automaticamente.
 
 
-## Estado da linha piloto - v0.1.3
+## Estado da linha piloto - v0.1.4
 
-`Automind:Mode=PilotWrite` esta ativo nesta versao por autorizacao explicita. A escrita permanece restrita a `07.Outros`; grupos, Microsoft 365, Teams, `proxyAddresses` e `pwdLastSet` continuam bloqueados.
+`Automind:Mode=PilotWrite` permanece ativo. A escrita de criação de usuário continua restrita a `07.Outros`; `GroupWritesEnabled=false`. A v0.1.4 amplia somente a descoberta/seleção de grupos (comuns, exceções e busca manual), sem adicionar o usuário a grupos. Microsoft 365, Teams, `proxyAddresses` e `pwdLastSet` continuam bloqueados.

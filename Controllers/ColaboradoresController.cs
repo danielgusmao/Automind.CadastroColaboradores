@@ -94,7 +94,7 @@ public sealed class ColaboradoresController(
                 PerfilUsuario = dados.Get("Perfil de usuário")?.Trim()
             };
 
-            vm.GruposSugeridos = (await TrySuggestAsync(vm.CargoIngles, vm.Departamento, cancellationToken)).ToList();
+            vm.GruposSugeridos = (await TrySuggestAsync(vm.CargoIngles, vm.Departamento, vm.Login, cancellationToken)).ToList();
             await LoadOusAsync(cancellationToken);
             return View("Novo", vm);
         }
@@ -111,7 +111,7 @@ public sealed class ColaboradoresController(
     {
         try
         {
-            var groups = await access.SuggestAsync(request.Cargo, request.Departamento, cancellationToken);
+            var groups = await access.SuggestAsync(request.Cargo, request.Departamento, request.Login, cancellationToken);
             return Json(new { success = true, groups });
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -122,6 +122,26 @@ public sealed class ColaboradoresController(
         {
             logger.LogWarning("Falha na consulta de grupos do AD. Tipo: {ErrorType}; código: {Code}", exception.GetType().Name, exception.HResult);
             return Json(new { success = false, message = "Não foi possível consultar os grupos no Active Directory." });
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> BuscarOutrosGrupos([FromBody] GroupSearchRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var groups = await access.SearchGroupsAsync(request.Termo, 20, cancellationToken);
+            return Json(new { success = true, groups });
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning("Falha na busca manual de grupos do AD. Tipo: {ErrorType}; código: {Code}", exception.GetType().Name, exception.HResult);
+            return Json(new { success = false, message = "Não foi possível pesquisar grupos no Active Directory." });
         }
     }
 
@@ -232,7 +252,7 @@ public sealed class ColaboradoresController(
             Departamento = "ENGENHARIA",
             GrupoTrabalho = "Engenharia",
             PerfilUsuario = "Colaborador Interno",
-            GruposSugeridos = (await TrySuggestAsync("Automation Systems Analyst", "ENGENHARIA", cancellationToken)).ToList()
+            GruposSugeridos = (await TrySuggestAsync("Automation Systems Analyst", "ENGENHARIA", "gabriel.silva", cancellationToken)).ToList()
         };
         await LoadOusAsync(cancellationToken);
         return View("Novo", vm);
@@ -242,12 +262,7 @@ public sealed class ColaboradoresController(
         AdProvisioningValidationRequest request,
         CancellationToken cancellationToken)
     {
-        var suggestions = (await access.SuggestAsync(request.CargoIngles, request.Departamento, cancellationToken)).ToList();
-        var selectableDns = suggestions
-            .Where(x => !x.Protegido)
-            .Select(x => x.DistinguishedName)
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var suggestions = (await access.SuggestAsync(request.CargoIngles, request.Departamento, request.Login, cancellationToken)).ToList();
 
         var rawRequestedGroups = (request.SelectedGroupDns ?? [])
             .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -255,12 +270,17 @@ public sealed class ColaboradoresController(
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
+        var resolvedRequestedGroups = (await access.ResolveGroupsAsync(rawRequestedGroups, cancellationToken)).ToList();
+        var resolvedByDn = resolvedRequestedGroups
+            .Where(x => !string.IsNullOrWhiteSpace(x.DistinguishedName))
+            .ToDictionary(x => x.DistinguishedName, StringComparer.OrdinalIgnoreCase);
+
         var invalidRequestedGroups = rawRequestedGroups
-            .Where(x => !selectableDns.Contains(x))
+            .Where(dn => !resolvedByDn.TryGetValue(dn, out var group) || group.Protegido)
             .ToList();
 
         var requestedGroups = rawRequestedGroups
-            .Where(selectableDns.Contains)
+            .Where(dn => resolvedByDn.TryGetValue(dn, out var group) && !group.Protegido)
             .ToList();
 
         var identity = await ad.CheckIdentityAvailabilityAsync(request.Login ?? string.Empty, request.Email ?? string.Empty, cancellationToken);
@@ -300,7 +320,7 @@ public sealed class ColaboradoresController(
         };
 
         var valid = checks.All(x => x.Passed);
-        var preview = valid ? BuildPreview(request, manager, ou, suggestions, requestedGroups) : null;
+        var preview = valid ? BuildPreview(request, manager, ou, resolvedRequestedGroups, requestedGroups) : null;
         var response = new AdProvisioningValidationResponse
         {
             Success = true,
@@ -340,11 +360,11 @@ public sealed class ColaboradoresController(
         }
     }
 
-    private async Task<IReadOnlyList<GroupSuggestion>> TrySuggestAsync(string? cargo, string? departamento, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<GroupSuggestion>> TrySuggestAsync(string? cargo, string? departamento, string? excludedSamAccountName, CancellationToken cancellationToken)
     {
         try
         {
-            return await access.SuggestAsync(cargo, departamento, cancellationToken);
+            return await access.SuggestAsync(cargo, departamento, excludedSamAccountName, cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -362,7 +382,7 @@ public sealed class ColaboradoresController(
         AdProvisioningValidationRequest request,
         AdUserResolution manager,
         AdOuValidation ou,
-        IReadOnlyList<GroupSuggestion> suggestions,
+        IReadOnlyList<GroupSuggestion> selectedGroupMetadata,
         IReadOnlyCollection<string> requestedGroups)
     {
         var fullName = (request.NomeCompleto ?? string.Empty).Trim();
@@ -372,7 +392,7 @@ public sealed class ColaboradoresController(
         var login = (request.Login ?? string.Empty).Trim();
         var email = (request.Email ?? string.Empty).Trim();
 
-        var groupNames = suggestions
+        var groupNames = selectedGroupMetadata
             .Where(x => requestedGroups.Contains(x.DistinguishedName, StringComparer.OrdinalIgnoreCase))
             .Select(x => x.Nome)
             .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
@@ -470,7 +490,7 @@ public sealed class ColaboradoresController(
         IReadOnlyCollection<string> invalidRequestedGroups)
     {
         if (invalidRequestedGroups.Count > 0)
-            return $"Há grupo(s) protegido(s) ou fora das sugestões permitidas: {string.Join("; ", invalidRequestedGroups)}";
+            return $"Há grupo(s) não localizado(s) ou protegido(s): {string.Join("; ", invalidRequestedGroups)}";
         if (requestedGroups.Count == 0) return "Nenhum grupo selecionado; o piloto pode seguir sem escrita de memberships.";
         if (result.AllExist) return $"{requestedGroups.Count} grupo(s) confirmado(s) no AD. A criação piloto continuará bloqueando escrita de grupos.";
         return $"Grupos não localizados: {string.Join("; ", result.MissingGroups)}";
@@ -589,5 +609,11 @@ public sealed class ColaboradoresController(
     {
         public string? Cargo { get; set; }
         public string? Departamento { get; set; }
+        public string? Login { get; set; }
+    }
+
+    public sealed class GroupSearchRequest
+    {
+        public string? Termo { get; set; }
     }
 }

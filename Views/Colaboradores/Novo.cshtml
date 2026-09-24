@@ -10,9 +10,12 @@
     var groupWritesEnabled = ViewBag.AdGroupWritesEnabled is bool groupsEnabled && groupsEnabled;
     var writeAllowedOuDns = ViewBag.WriteAllowedOuDns as IReadOnlyList<string> ?? [];
     var writeTargetOu = writeAllowedOuDns.FirstOrDefault() ?? string.Empty;
-    var commonCount = Model.GruposSugeridos.Count(g => !g.Protegido && g.EncontradoEm == g.TotalComparados);
-    var exceptionCount = Model.GruposSugeridos.Count(g => !g.Protegido && g.EncontradoEm != g.TotalComparados);
-    var protectedCount = Model.GruposSugeridos.Count(g => g.Protegido);
+    var commonGroups = Model.GruposSugeridos.Where(g => !g.Protegido && g.TotalComparados > 0 && g.EncontradoEm == g.TotalComparados).ToList();
+    var exceptionGroups = Model.GruposSugeridos.Where(g => !g.Protegido && (g.TotalComparados == 0 || g.EncontradoEm != g.TotalComparados)).ToList();
+    var protectedGroups = Model.GruposSugeridos.Where(g => g.Protegido).ToList();
+    var commonCount = commonGroups.Count;
+    var exceptionCount = exceptionGroups.Count;
+    var protectedCount = protectedGroups.Count;
 }
 
 <div class="app-container content-stack page-enter">
@@ -81,6 +84,7 @@
     <form class="provisioning-grid"
           data-provisioning-form
           data-groups-url='@Url.Action("BuscarGrupos", "Colaboradores")'
+          data-manual-groups-url='@Url.Action("BuscarOutrosGrupos", "Colaboradores")'
           data-validation-url='@Url.Action("ValidarAd", "Colaboradores")'
           data-create-url='@Url.Action("CriarUsuarioPiloto", "Colaboradores")'
           data-write-enabled="@writeMode.ToString().ToLowerInvariant()"
@@ -184,42 +188,92 @@
                 <table class="access-table">
                     <thead><tr><th></th><th>Grupo</th><th>Incidência</th><th>Classificação</th></tr></thead>
                     <tbody data-groups-body>
-                    @foreach (var g in Model.GruposSugeridos)
+                    @if (commonGroups.Count > 0)
                     {
-                        var comum = !g.Protegido && g.EncontradoEm == g.TotalComparados;
-                        <tr class="@(g.Protegido ? "row-protected" : comum ? "row-common" : "")">
-                            <td><input class="group-checkbox" type="checkbox" value="@g.DistinguishedName" checked="@g.Selecionado" disabled="@g.Protegido" /></td>
-                            <td>
-                                <strong>@g.Nome</strong>
-                                <small class="group-meta">@g.Categoria · @g.Escopo</small>
-                                @if (g.EfeitosIndiretos.Count > 0)
-                                {
-                                    <small class="group-indirect">Acesso indireto: @string.Join(", ", g.EfeitosIndiretos)</small>
-                                }
-                            </td>
-                            <td><span class="incidence">@g.EncontradoEm / @g.TotalComparados</span></td>
-                            <td>
-                                @if (g.Protegido)
-                                {
-                                    <span class="status-pill status-pill-danger">Protegido</span>
-                                }
-                                else if (comum)
-                                {
-                                    <span class="status-pill status-pill-success">Comum ao cargo</span>
-                                }
-                                else
-                                {
-                                    <span class="status-pill">Exceção</span>
-                                }
-                            </td>
-                        </tr>
+                        <tr class="group-section-row"><td colspan="4">Grupos comuns ao cargo</td></tr>
+                        @foreach (var g in commonGroups)
+                        {
+                            <tr class="row-common">
+                                <td><input class="group-checkbox" type="checkbox" value="@g.DistinguishedName" checked="@g.Selecionado" /></td>
+                                <td>
+                                    <strong>@g.Nome</strong>
+                                    <small class="group-meta">@g.Categoria · @g.Escopo</small>
+                                    @if (g.EfeitosIndiretos.Count > 0)
+                                    {
+                                        <small class="group-indirect">Acesso indireto: @string.Join(", ", g.EfeitosIndiretos)</small>
+                                    }
+                                </td>
+                                <td><span class="incidence">@g.EncontradoEm / @g.TotalComparados</span></td>
+                                <td><span class="status-pill status-pill-success">Comum ao cargo</span></td>
+                            </tr>
+                        }
+                    }
+                    @if (exceptionGroups.Count > 0)
+                    {
+                        <tr class="group-section-row"><td colspan="4">Exceções encontradas</td></tr>
+                        @foreach (var g in exceptionGroups)
+                        {
+                            <tr>
+                                <td><input class="group-checkbox" type="checkbox" value="@g.DistinguishedName" checked="@g.Selecionado" /></td>
+                                <td>
+                                    <strong>@g.Nome</strong>
+                                    <small class="group-meta">@g.Categoria · @g.Escopo</small>
+                                    @if (g.EfeitosIndiretos.Count > 0)
+                                    {
+                                        <small class="group-indirect">Acesso indireto: @string.Join(", ", g.EfeitosIndiretos)</small>
+                                    }
+                                </td>
+                                <td><span class="incidence">@g.EncontradoEm / @g.TotalComparados</span></td>
+                                <td><span class="status-pill">Exceção</span></td>
+                            </tr>
+                        }
+                    }
+                    @if (protectedGroups.Count > 0)
+                    {
+                        <tr class="group-section-row"><td colspan="4">Grupos protegidos</td></tr>
+                        @foreach (var g in protectedGroups)
+                        {
+                            <tr class="row-protected">
+                                <td><input class="group-checkbox" type="checkbox" value="@g.DistinguishedName" disabled /></td>
+                                <td>
+                                    <strong>@g.Nome</strong>
+                                    <small class="group-meta">@g.Categoria · @g.Escopo</small>
+                                    @if (g.EfeitosIndiretos.Count > 0)
+                                    {
+                                        <small class="group-indirect">Acesso indireto: @string.Join(", ", g.EfeitosIndiretos)</small>
+                                    }
+                                </td>
+                                <td><span class="incidence">@g.EncontradoEm / @g.TotalComparados</span></td>
+                                <td><span class="status-pill status-pill-danger">Protegido</span></td>
+                            </tr>
+                        }
                     }
                     </tbody>
                 </table>
             </div>
+
+            <div class="manual-groups-panel">
+                <div class="manual-groups-heading">
+                    <div>
+                        <h3>Outros grupos</h3>
+                        <p>Digite o nome de um grupo existente no AD para adicionar manualmente quando ele não aparecer nas sugestões.</p>
+                    </div>
+                </div>
+                <div class="manual-group-search">
+                    <input type="text" data-manual-group-query autocomplete="off" placeholder="Ex.: _Internet, Dist_Todos..." />
+                    <button type="button" class="btn btn-secondary" data-search-manual-groups>Buscar no AD</button>
+                </div>
+                <div class="manual-group-results" data-manual-group-results hidden></div>
+                <div class="manual-group-selected" data-manual-group-selected hidden>
+                    <strong>Adicionados manualmente</strong>
+                    <div data-manual-group-chips></div>
+                </div>
+                <div class="topdesk-import-status" data-manual-groups-status hidden></div>
+            </div>
+
             @if (!groupWritesEnabled)
             {
-                <div class="topdesk-import-status is-warning group-write-warning">Os grupos comuns ao cargo permanecem marcados como sugestão e as exceções ficam desmarcadas. Enquanto GroupWritesEnabled=false, essas marcações são apenas informativas e nenhuma membership será gravada.</div>
+                <div class="topdesk-import-status is-warning group-write-warning">Os grupos comuns ao cargo permanecem marcados como sugestão e as exceções ficam desmarcadas. Enquanto GroupWritesEnabled=false, essas seleções são apenas informativas e o usuário não será adicionado a nenhum grupo.</div>
             }
             <div class="topdesk-import-status" data-groups-status hidden></div>
         </section>

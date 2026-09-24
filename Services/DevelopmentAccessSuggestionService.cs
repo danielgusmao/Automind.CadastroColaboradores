@@ -9,6 +9,24 @@ public sealed class DevelopmentAccessSuggestionService : IAccessSuggestionServic
     public Task<IReadOnlyList<GroupSuggestion>> SuggestAsync(
         string? cargo,
         string? departamento,
+        string? excludedSamAccountName,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult<IReadOnlyList<GroupSuggestion>>([]);
+    }
+
+    public Task<IReadOnlyList<GroupSuggestion>> SearchGroupsAsync(
+        string? query,
+        int limit = 20,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult<IReadOnlyList<GroupSuggestion>>([]);
+    }
+
+    public Task<IReadOnlyList<GroupSuggestion>> ResolveGroupsAsync(
+        IEnumerable<string> distinguishedNames,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();

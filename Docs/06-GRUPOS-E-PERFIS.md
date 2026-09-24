@@ -7,12 +7,13 @@ A sugestão deixou de ser mock e consulta o AD real.
 Dado `Cargo em inglês (Title) + Departamento (Department)`:
 
 1. pesquisar usuários ativos equivalentes abaixo de `Automind:Ad:PeopleSearchBase`;
-2. ler os grupos diretos de cada usuário via `memberOf`;
-3. contar a incidência de cada grupo;
-4. consultar metadados do grupo no AD;
-5. calcular ancestrais de grupos de segurança usando a regra LDAP `1.2.840.113556.1.4.1941`;
-6. classificar grupos protegidos/privilegiados;
-7. pré-selecionar somente grupos presentes em todos os usuários equivalentes e que não estejam protegidos.
+2. excluir da coorte o `sAMAccountName` do colaborador que está sendo cadastrado, quando informado, evitando que um usuário já criado distorça a própria referência;
+3. ler os grupos diretos de cada usuário via `memberOf`;
+4. contar a incidência de cada grupo;
+5. consultar metadados do grupo no AD;
+6. calcular ancestrais de grupos de segurança usando a regra LDAP `1.2.840.113556.1.4.1941`;
+7. classificar grupos protegidos/privilegiados;
+8. pré-selecionar somente grupos presentes em todos os usuários equivalentes e que não estejam protegidos.
 
 O grupo primário não aparece em `memberOf` e, portanto, não faz parte desta comparação automática.
 
@@ -27,6 +28,20 @@ A interface também mostra:
 - categoria `Security` ou `Distribution`;
 - escopo `Global`, `Universal` ou `DomainLocal`;
 - efeitos indiretos de grupos de segurança quando houver grupos ancestrais.
+
+## Seleção manual - Outros grupos
+
+Além das sugestões pela coorte, a interface possui o campo **Outros grupos**:
+
+- pesquisa grupos reais no AD por nome/sAMAccountName;
+- exige no mínimo 2 caracteres;
+- mostra categoria, escopo e efeitos indiretos;
+- grupos protegidos aparecem bloqueados;
+- grupo já presente nas sugestões não é duplicado;
+- grupo selecionado manualmente participa da pré-validação e da prévia;
+- o backend resolve novamente cada DN selecionado e rejeita grupo inexistente ou protegido, sem confiar apenas no navegador.
+
+Enquanto `GroupWritesEnabled=false`, tanto sugestões quanto grupos manuais permanecem apenas na prévia e o usuário não é adicionado a nenhum grupo.
 
 ## Perfil real validado - Automation Systems Analyst / ENGENHARIA
 

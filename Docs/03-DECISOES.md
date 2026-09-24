@@ -148,3 +148,14 @@
 - o servico de auditoria deve conseguir iniciar o arquivo local antes da primeira escrita AD; se isso falhar, a criacao deve parar antes de criar o usuario;
 - rollback primario da aplicacao: voltar `Automind:Mode=ReadOnly` e publicar;
 - a versao `0.1.3` passa a ser registrada no projeto/pacote, sem criar tag Git automaticamente.
+
+
+## 24/09/2026 - seleção de grupos antes da escrita
+
+- referências de cargo/departamento podem pesquisar todo o escopo de leitura do AD, independentemente da OU de destino do novo colaborador;
+- `07.Outros` permanece o único escopo de escrita real do piloto de criação de usuário;
+- não criar grupo fictício apenas para testar sugestão; grupos reais de outras OUs podem ser usados como referência somente leitura;
+- o colaborador em cadastro deve ser excluído da própria coorte pelo `sAMAccountName`;
+- seleção de acesso terá três origens: comuns ao cargo, exceções observadas e outros grupos pesquisados manualmente no AD;
+- qualquer grupo manual deve ser resolvido/revalidado no backend e grupos protegidos continuam proibidos;
+- `GroupWritesEnabled=false` permanece até fase posterior de delegação/allowlist de escrita de grupos.
