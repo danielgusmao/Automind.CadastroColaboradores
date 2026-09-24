@@ -501,7 +501,13 @@ document.addEventListener('DOMContentLoaded', () => {
         button.disabled = true;
         button.textContent = 'Consultando AD...';
         try {
-            const result = await postJson(groupsUrl, { cargo, departamento, login: fieldValue('Login') });
+            const result = await postJson(groupsUrl, {
+                cargo,
+                departamento,
+                login: fieldValue('Login'),
+                nomeCompleto: fieldValue('NomeCompleto'),
+                ouDistinguishedName: fieldValue('OuDistinguishedName')
+            });
             if (!result.success) {
                 setStatus(groupsStatus, result.message || 'Não foi possível consultar os grupos.', 'error');
                 return;

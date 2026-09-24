@@ -76,7 +76,7 @@ Antes de `git add .`, revisar sempre `git status --short`. A pasta local `artifa
 A partir desta rodada, a regra anterior de "sem versionamento numerico" fica substituida **para os pacotes de atualizacao**:
 
 - todo pacote completo deve usar nome curto: `CadColab-vX.Y.Z.zip`;
-- versao atual da linha piloto: `0.1.5`;
+- versao atual da linha piloto: `0.1.6`;
 - ajustes incrementais desta linha usam patch: `0.1.1`, `0.1.2`, `0.1.3`, `0.1.4` etc.;
 - mudanca funcional maior ainda dentro do piloto pode incrementar minor (`0.2.0`);
 - `VERSION.txt` na raiz registra a versao do pacote;
@@ -99,3 +99,7 @@ Antes de gerar/entregar qualquer novo `CadColab-vX.Y.Z.zip`:
 6. nao entregar o pacote se um documento anterior tiver desaparecido sem autorizacao explicita.
 
 A consolidacao historica existe para facilitar leitura; nunca mais deve ser usada para remover os arquivos historicos individuais.
+
+## Atualizacao v0.1.8 - plataforma Windows explicita
+
+O projeto passa de `net10.0` para `net10.0-windows`. Como o sistema e exclusivo de IIS/Windows e usa `System.DirectoryServices`, os antigos 15 avisos CA1416 deixam de ser esperados. Nao usar `NoWarn` ou `#pragma` para mascara-los. O build local esperado passa a ser 0 erros / 0 CA1416.

@@ -1,3 +1,39 @@
+# Registro de interacoes e decisoes - 24/09/2026 - MAIS NOVO PRIMEIRO
+
+## Build v0.1.6 aprovado e decisao de acelerar/fechar a fase de grupos
+
+O responsavel enviou captura do Visual Studio mostrando build `.NET 10` concluido com 0 erros e 15 avisos `CA1416` esperados. Tambem solicitou sair do ciclo de discussao e fechar rapidamente os testes da fase atual.
+
+Revisao tecnica identificou que excluir somente o colaborador atual nao protege um **novo chamado** contra contas piloto anteriores com o mesmo cargo/departamento. Por isso a v0.1.7 passa a excluir `07.Outros` da coorte estatistica por configuracao (`SuggestionExcludedOuDns`). Isso nao limita a pesquisa nas OUs reais de negocio; apenas remove o laboratorio de escrita da amostra de referencia.
+
+Plano aprovado para zerar a fase: build/deploy v0.1.7 -> um teste limpo de sugestao/excecoes/outros grupos/pre-validacao -> encerrar descoberta/selecao -> abrir fase separada de escrita de memberships.
+
+---
+
+# Registro de interacoes e decisoes - 24/09/2026 - MAIS NOVO PRIMEIRO
+
+## Correcao 13:06 - grupos 5/6 em vez de 5/5
+
+O responsavel enviou nova captura/PDF mostrando os 8 grupos historicamente comuns como `5/6` e classificados como excecao.
+
+Conclusao apos revisar o codigo:
+
+- a exclusao da coorte estava baseada somente no login atual;
+- usuario existente no AD: `teste.cadcolab`;
+- login atual do formulario: `teste.provisionamento`;
+- por isso o usuario piloto entrou na propria coorte;
+- como ele nao possui memberships de negocio, reduziu os grupos comuns de 5/5 para 5/6.
+
+Decisoes:
+
+- nao remover o usuario do AD agora;
+- corrigir a exclusao por `sAMAccountName` + `CN/OU`;
+- validar novamente a interface antes de qualquer exclusao/recriacao;
+- checkpoint futuro em arquivo unico cumulativo, secoes novas sempre no topo;
+- nao criar novos arquivos individuais por versao; preservar os historicos ja existentes.
+
+---
+
 # Registro de interacoes e decisoes - 24/09/2026
 
 Este documento registra as interacoes recentes relevantes para que o contexto nao dependa do chat.
@@ -103,3 +139,12 @@ Neste projeto, **membership** significa a associacao efetiva do usuario a um gru
 ## Politica primordial de documentacao
 
 O responsavel determinou que documentacao e checkpoint nunca mais sejam reduzidos ou removidos entre versoes. Toda nova versao deve apenas acrescentar historico e preservar os documentos anteriores, permitindo continuidade integral por humanos ou LLMs.
+
+## 13:27 - Build v0.1.7 e remocao correta dos CA1416
+
+- responsavel enviou build v0.1.7: 0 erros e 15 CA1416 em `AdConnectionFactory.cs`;
+- solicitado remover os avisos e acelerar o encerramento da fase;
+- causa: TFM generico `net10.0` usando `System.DirectoryServices` Windows-only;
+- v0.1.8 declara `net10.0-windows`, sem suprimir warnings por `NoWarn`/pragma;
+- responsavel refinou regra documental: unificar/evoluir arquivos; preservar informacao, nao arquivos redundantes;
+- checkpoints historicos foram incorporados ao unico `Docs/CHECKPOINT.md` antes da remocao dos duplicados.

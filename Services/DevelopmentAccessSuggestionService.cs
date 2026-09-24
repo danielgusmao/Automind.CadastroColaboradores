@@ -10,6 +10,8 @@ public sealed class DevelopmentAccessSuggestionService : IAccessSuggestionServic
         string? cargo,
         string? departamento,
         string? excludedSamAccountName,
+        string? excludedCommonName,
+        string? excludedOuDistinguishedName,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();

@@ -7,13 +7,14 @@ A sugestão deixou de ser mock e consulta o AD real.
 Dado `Cargo em inglês (Title) + Departamento (Department)`:
 
 1. pesquisar usuários ativos equivalentes abaixo de `Automind:Ad:PeopleSearchBase`;
-2. excluir da coorte o `sAMAccountName` do colaborador que está sendo cadastrado, quando informado, evitando que um usuário já criado distorça a própria referência;
-3. ler os grupos diretos de cada usuário via `memberOf`;
-4. contar a incidência de cada grupo;
-5. consultar metadados do grupo no AD;
-6. calcular ancestrais de grupos de segurança usando a regra LDAP `1.2.840.113556.1.4.1941`;
-7. classificar grupos protegidos/privilegiados;
-8. pré-selecionar somente grupos presentes em todos os usuários equivalentes e que não estejam protegidos.
+2. excluir usuários localizados nas OUs configuradas em `Automind:Ad:SuggestionExcludedOuDns` (atualmente `07.Outros`), evitando que contas piloto/teste distorçam a coorte;
+3. excluir também o próprio colaborador por `sAMAccountName` e, quando disponível, por `CN + OU`;
+4. ler os grupos diretos de cada usuário via `memberOf`;
+5. contar a incidência de cada grupo;
+6. consultar metadados do grupo no AD;
+7. calcular ancestrais de grupos de segurança usando a regra LDAP `1.2.840.113556.1.4.1941`;
+8. classificar grupos protegidos/privilegiados;
+9. pré-selecionar somente grupos presentes em todos os usuários equivalentes e que não estejam protegidos.
 
 O grupo primário não aparece em `memberOf` e, portanto, não faz parte desta comparação automática.
 
@@ -76,3 +77,7 @@ A OU de destino do novo usuario e o escopo usado para pesquisa de referencia sao
 - grupos reais de outras OUs servem como referencia de cargo sem receber alteracao durante essa fase;
 - nao criar grupo ficticio apenas para testar a sugestao;
 - `_CriaMovePastas` existente em `07.Outros` pertence ao legado e nao participa do CadColab.
+
+## Exclusao da OU piloto da coorte - 24/09/2026
+
+`07.Outros` continua sendo a OU piloto de escrita, mas nao deve servir como fonte estatistica de perfis. A v0.1.7 introduz `Automind:Ad:SuggestionExcludedOuDns` para excluir essa OU da coorte de referencia sem limitar a leitura das OUs reais de negocio.

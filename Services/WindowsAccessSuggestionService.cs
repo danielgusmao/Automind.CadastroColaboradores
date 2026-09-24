@@ -5,7 +5,7 @@ using Automind.CadastroColaboradores.Models;
 namespace Automind.CadastroColaboradores.Services;
 
 [SupportedOSPlatform("windows")]
-public sealed class WindowsAccessSuggestionService(AdConnectionFactory directory) : IAccessSuggestionService
+public sealed class WindowsAccessSuggestionService(AdConnectionFactory directory, IConfiguration configuration) : IAccessSuggestionService
 {
     private const int SecurityEnabledFlag = unchecked((int)0x80000000);
     private const int GlobalScopeFlag = 0x00000002;
@@ -16,6 +16,8 @@ public sealed class WindowsAccessSuggestionService(AdConnectionFactory directory
         string? cargo,
         string? departamento,
         string? excludedSamAccountName,
+        string? excludedCommonName,
+        string? excludedOuDistinguishedName,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -23,6 +25,12 @@ public sealed class WindowsAccessSuggestionService(AdConnectionFactory directory
         var normalizedCargo = (cargo ?? string.Empty).Trim();
         var normalizedDepartment = (departamento ?? string.Empty).Trim();
         var normalizedExcludedSam = (excludedSamAccountName ?? string.Empty).Trim();
+        var normalizedExcludedCommonName = (excludedCommonName ?? string.Empty).Trim();
+        var normalizedExcludedOuDn = (excludedOuDistinguishedName ?? string.Empty).Trim();
+        var referenceExcludedOuDns = configuration.GetSection("Automind:Ad:SuggestionExcludedOuDns").GetChildren()
+            .Select(x => (x.Value ?? string.Empty).Trim())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .ToArray();
         if (string.IsNullOrWhiteSpace(normalizedCargo) || string.IsNullOrWhiteSpace(normalizedDepartment))
             return Task.FromResult<IReadOnlyList<GroupSuggestion>>([]);
 
@@ -41,12 +49,34 @@ public sealed class WindowsAccessSuggestionService(AdConnectionFactory directory
         };
         searcher.PropertiesToLoad.Add("memberOf");
         searcher.PropertiesToLoad.Add("sAMAccountName");
+        searcher.PropertiesToLoad.Add("cn");
+        searcher.PropertiesToLoad.Add("distinguishedName");
 
         var users = new List<IReadOnlyList<string>>();
         using var entries = searcher.FindAll();
         foreach (SearchResult entry in entries)
         {
             cancellationToken.ThrowIfCancellationRequested();
+
+            var sam = AdConnectionFactory.PropertyString(entry, "sAMAccountName") ?? string.Empty;
+            var cn = AdConnectionFactory.PropertyString(entry, "cn") ?? string.Empty;
+            var dn = AdConnectionFactory.PropertyString(entry, "distinguishedName") ?? string.Empty;
+
+            if (referenceExcludedOuDns.Any(excludedOu => IsUnderOu(dn, excludedOu)))
+                continue;
+
+            if (!string.IsNullOrWhiteSpace(normalizedExcludedSam)
+                && string.Equals(sam, normalizedExcludedSam, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var firstComma = dn.IndexOf(',');
+            var parentDn = firstComma >= 0 && firstComma + 1 < dn.Length ? dn[(firstComma + 1)..] : string.Empty;
+            if (!string.IsNullOrWhiteSpace(normalizedExcludedCommonName)
+                && !string.IsNullOrWhiteSpace(normalizedExcludedOuDn)
+                && string.Equals(cn, normalizedExcludedCommonName, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(parentDn, normalizedExcludedOuDn, StringComparison.OrdinalIgnoreCase))
+                continue;
+
             users.Add(AdConnectionFactory.PropertyStrings(entry, "memberOf"));
         }
 
@@ -273,4 +303,12 @@ public sealed class WindowsAccessSuggestionService(AdConnectionFactory directory
         List<string> Ancestors);
 
     private sealed record AncestorGroup(string Name, bool Protected);
+    private static bool IsUnderOu(string distinguishedName, string ouDistinguishedName)
+    {
+        if (string.IsNullOrWhiteSpace(distinguishedName) || string.IsNullOrWhiteSpace(ouDistinguishedName))
+            return false;
+
+        return distinguishedName.EndsWith("," + ouDistinguishedName, StringComparison.OrdinalIgnoreCase);
+    }
+
 }

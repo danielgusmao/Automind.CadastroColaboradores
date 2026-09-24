@@ -94,7 +94,7 @@ public sealed class ColaboradoresController(
                 PerfilUsuario = dados.Get("Perfil de usuário")?.Trim()
             };
 
-            vm.GruposSugeridos = (await TrySuggestAsync(vm.CargoIngles, vm.Departamento, vm.Login, cancellationToken)).ToList();
+            vm.GruposSugeridos = (await TrySuggestAsync(vm.CargoIngles, vm.Departamento, vm.Login, vm.NomeCompleto, null, cancellationToken)).ToList();
             await LoadOusAsync(cancellationToken);
             return View("Novo", vm);
         }
@@ -111,7 +111,7 @@ public sealed class ColaboradoresController(
     {
         try
         {
-            var groups = await access.SuggestAsync(request.Cargo, request.Departamento, request.Login, cancellationToken);
+            var groups = await access.SuggestAsync(request.Cargo, request.Departamento, request.Login, request.NomeCompleto, request.OuDistinguishedName, cancellationToken);
             return Json(new { success = true, groups });
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -252,7 +252,7 @@ public sealed class ColaboradoresController(
             Departamento = "ENGENHARIA",
             GrupoTrabalho = "Engenharia",
             PerfilUsuario = "Colaborador Interno",
-            GruposSugeridos = (await TrySuggestAsync("Automation Systems Analyst", "ENGENHARIA", "gabriel.silva", cancellationToken)).ToList()
+            GruposSugeridos = (await TrySuggestAsync("Automation Systems Analyst", "ENGENHARIA", "gabriel.silva", "Gabriel Luís Lima Silva", null, cancellationToken)).ToList()
         };
         await LoadOusAsync(cancellationToken);
         return View("Novo", vm);
@@ -262,7 +262,7 @@ public sealed class ColaboradoresController(
         AdProvisioningValidationRequest request,
         CancellationToken cancellationToken)
     {
-        var suggestions = (await access.SuggestAsync(request.CargoIngles, request.Departamento, request.Login, cancellationToken)).ToList();
+        var suggestions = (await access.SuggestAsync(request.CargoIngles, request.Departamento, request.Login, request.NomeCompleto, request.OuDistinguishedName, cancellationToken)).ToList();
 
         var rawRequestedGroups = (request.SelectedGroupDns ?? [])
             .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -360,11 +360,17 @@ public sealed class ColaboradoresController(
         }
     }
 
-    private async Task<IReadOnlyList<GroupSuggestion>> TrySuggestAsync(string? cargo, string? departamento, string? excludedSamAccountName, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<GroupSuggestion>> TrySuggestAsync(
+        string? cargo,
+        string? departamento,
+        string? excludedSamAccountName,
+        string? excludedCommonName,
+        string? excludedOuDistinguishedName,
+        CancellationToken cancellationToken)
     {
         try
         {
-            return await access.SuggestAsync(cargo, departamento, excludedSamAccountName, cancellationToken);
+            return await access.SuggestAsync(cargo, departamento, excludedSamAccountName, excludedCommonName, excludedOuDistinguishedName, cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -610,6 +616,8 @@ public sealed class ColaboradoresController(
         public string? Cargo { get; set; }
         public string? Departamento { get; set; }
         public string? Login { get; set; }
+        public string? NomeCompleto { get; set; }
+        public string? OuDistinguishedName { get; set; }
     }
 
     public sealed class GroupSearchRequest

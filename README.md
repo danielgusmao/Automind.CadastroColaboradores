@@ -26,6 +26,7 @@ Integrações ativas:
 - `Automind:Ad:BaseDn` - DN do domínio;
 - `Automind:Ad:PeopleSearchBase` - base para usuários/OUs;
 - `Automind:Ad:AllowedOuDns` - allowlist de OUs pelo DN completo;
+- `Automind:Ad:SuggestionExcludedOuDns` - OUs cujos usuários não entram na coorte de referência de grupos;
 - `Automind:Ad:ProtectedGroupNames` - nomes privilegiados que nunca são pré-selecionados;
 - `Automind:EmailDomain` - `automind.com.br`;
 - `Automind:PrimarySmtpDomain` - `automind.co`;
@@ -54,17 +55,21 @@ Consulte `Docs/10-FLUXO-GIT-E-PUBLICACAO.md` e `Docs/CHECKPOINT.md`.
 
 ## Pacote atual
 
-- Versao do pacote: `0.1.5`
-- Nome curto: `CadColab-v0.1.5.zip`
+- Versao do pacote: `0.1.7`
+- Nome curto: `CadColab-v0.1.7.zip`
 - Estado: `PilotWrite` para criação de usuário somente em `07.Outros`; escrita de grupos desabilitada
 - Versionamento de pacote nao cria tag Git automaticamente.
 
 
-## Estado da linha piloto - v0.1.5
+## Estado da linha piloto - v0.1.7
 
 `Automind:Mode=PilotWrite` permanece ativo. A escrita de criação de usuário continua restrita a `07.Outros`; `GroupWritesEnabled=false`. A funcionalidade da v0.1.4 amplia a descoberta/seleção de grupos (comuns, exceções e busca manual), sem adicionar o usuário a grupos. Microsoft 365, Teams, `proxyAddresses` e `pwdLastSet` continuam bloqueados.
 
 
 ## Documentacao cumulativa
 
-A v0.1.5 restaura os checkpoints individuais e formaliza a regra de que a documentacao nunca pode diminuir entre pacotes. Consulte `Docs/00-LEIA-PRIMEIRO.md` e `Docs/CONTEXTO-ATUAL.md`.
+A v0.1.7 endurece a coorte de referência: além de excluir o próprio colaborador, usuários localizados em `SuggestionExcludedOuDns` (atualmente `07.Outros`) não participam da estatística de grupos. Isso impede que contas piloto/teste distorçam futuros cargos. O checkpoint principal passa a ser cumulativo com as informacoes mais novas no topo; os arquivos historicos existentes sao preservados, mas novos checkpoints individuais deixam de ser criados. Consulte `Docs/CHECKPOINT.md` e `Docs/CONTEXTO-ATUAL.md`.
+
+## v0.1.8
+
+O projeto agora declara `net10.0-windows`, coerente com IIS + Active Directory. Isso elimina os avisos CA1416 sem suprimi-los artificialmente. A documentacao de checkpoint foi consolidada em `Docs/CHECKPOINT.md` (unico, cumulativo, mais novo primeiro).

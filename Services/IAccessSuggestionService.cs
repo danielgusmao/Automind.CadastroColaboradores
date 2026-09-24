@@ -8,6 +8,8 @@ public interface IAccessSuggestionService
         string? cargo,
         string? departamento,
         string? excludedSamAccountName,
+        string? excludedCommonName,
+        string? excludedOuDistinguishedName,
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<GroupSuggestion>> SearchGroupsAsync(

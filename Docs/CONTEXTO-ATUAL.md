@@ -1,6 +1,16 @@
+# ATUALIZACAO v0.1.8 - 24/09/2026
+
+- Target framework agora `net10.0-windows` para refletir o destino real IIS/Windows/AD e eliminar CA1416 corretamente.
+- Build v0.1.7 recebido: 0 erros, 15 CA1416; proximo build esperado: 0 CA1416.
+- Checkpoint historico agora e unico: `Docs/CHECKPOINT.md`, mais novo primeiro.
+- Checkpoints/CP-HIST/contexto historico redundantes foram incorporados ao checkpoint unico e removidos como arquivos separados.
+- Estado funcional permanece: PilotWrite, somente 07.Outros, GroupWritesEnabled=false, sem memberships reais.
+
+---
+
 # CadColab - contexto atual para continuidade
 
-Versao do pacote de continuidade: `0.1.5`
+Versao do pacote de continuidade: `0.1.7`
 Data: 24/09/2026
 Projeto: `Automind.CadastroColaboradores`
 
@@ -10,8 +20,10 @@ Este arquivo descreve o estado operacional mais recente. Historicos antigos deve
 
 ## Estado atual
 
-- ultimo codigo funcional: linha `v0.1.4`;
-- pacote atual `v0.1.5` apenas restaura/expande documentacao e preserva o codigo funcional da `v0.1.4`;
+- codigo funcional atual: `v0.1.7`;
+- build local da v0.1.6 foi confirmado com 0 erros e 15 avisos CA1416 esperados;
+- a v0.1.7 exclui da coorte de referencia usuarios localizados em `SuggestionExcludedOuDns`; atualmente `07.Outros`, impedindo que contas piloto/teste distorcam novos perfis;
+- a exclusao por sAMAccountName e CN + OU da v0.1.6 permanece como defesa adicional;
 - `Automind:Mode=PilotWrite`;
 - criacao real permitida somente em `OU=07.Outros,OU=Automind,DC=automind,DC=com,DC=br`;
 - App Pool `CadastroColaboradores` roda como `AUTOMIND\gMSA_CadColab$`;
@@ -28,13 +40,14 @@ Este arquivo descreve o estado operacional mais recente. Historicos antigos deve
 Objetivo aprovado:
 
 1. buscar usuarios ativos com mesmo `Title + Department` em todo o escopo de leitura do AD;
-2. excluir o proprio colaborador em cadastro da coorte por `sAMAccountName`;
-3. grupos 100% da coorte -> **Comuns ao cargo**, marcados automaticamente;
-4. grupos parciais -> **Excecoes encontradas**, desmarcados;
-5. campo **Outros grupos** -> busca manual/autocomplete no AD;
-6. backend revalida todos os grupos escolhidos e bloqueia protegidos;
-7. efeitos indiretos/transitivos permanecem visiveis;
-8. enquanto `GroupWritesEnabled=false`, nenhuma membership e gravada.
+2. excluir da coorte as OUs configuradas em `SuggestionExcludedOuDns` (atualmente `07.Outros`);
+3. excluir o proprio colaborador em cadastro por `sAMAccountName` e, quando a OU estiver selecionada, tambem por `CN + OU`;
+4. grupos 100% da coorte -> **Comuns ao cargo**, marcados automaticamente;
+5. grupos parciais -> **Excecoes encontradas**, desmarcados;
+6. campo **Outros grupos** -> busca manual/autocomplete no AD;
+7. backend revalida todos os grupos escolhidos e bloqueia protegidos;
+8. efeitos indiretos/transitivos permanecem visiveis;
+9. enquanto `GroupWritesEnabled=false`, nenhuma membership e gravada.
 
 Perfil de teste atual: `Automation Systems Analyst + ENGENHARIA`, com 5 usuarios de referencia e 8 grupos comuns 5/5.
 
@@ -61,11 +74,10 @@ O grupo `_CriaMovePastas` existente em `07.Outros` pertence ao legado e nao deve
 
 ## Documentacao - regra primordial
 
-Nunca remover documentacao em novas versoes. Todo ZIP deve conter:
+Nunca remover documentacao em novas versoes. O checkpoint principal e `Docs/CHECKPOINT.md`, cumulativo, com as informacoes mais novas sempre no topo. Nao criar novos arquivos individuais de checkpoint. Os arquivos historicos individuais ja existentes permanecem preservados. Todo ZIP deve conter:
 
-- checkpoint corrente;
-- historico consolidado;
-- checkpoints individuais anteriores;
+- checkpoint cumulativo corrente;
+- historico/documentacao anterior preservados;
 - decisoes;
 - regras de seguranca e rollback;
 - fluxo Git/release;
@@ -76,4 +88,4 @@ Antes de entregar novo pacote, comparar inventario de documentos com a versao an
 
 ## Proximo gate tecnico
 
-A `v0.1.4` funcional ainda precisa do build local .NET 10 na maquina do Visual Studio e dos testes visuais/funcionais da nova selecao de grupos. Escrita real de memberships continua fora do escopo ate delegacao/allowlist de grupos e autorizacao explicita posterior.
+Build/deploy da `v0.1.7` e um unico teste funcional limpo: 8 grupos comuns `5/5` em verde, 4 excecoes, busca manual em `Outros grupos` e pre-validacao. Nao excluir o usuario piloto. Ao concluir, encerrar a fase de descoberta/selecao e abrir a fase separada de escrita de memberships.

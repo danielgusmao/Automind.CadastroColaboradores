@@ -1,3 +1,30 @@
+# POLITICA ATUAL - DOCUMENTACAO UNIFICADA E EVOLUTIVA
+
+Data: 24/09/2026. Esta secao prevalece sobre orientacoes anteriores em caso de conflito.
+
+- `Docs/CHECKPOINT.md` e o **unico checkpoint cumulativo** do projeto;
+- secoes novas entram no topo, com divisao clara por versao/interacao;
+- nao criar checkpoint individual por versao;
+- documentos historicos redundantes podem ser removidos **depois** de seu conteudo ser incorporado ao checkpoint unico ou ao documento tematico correspondente;
+- o requisito e preservar **informacao**, nao a quantidade de arquivos;
+- documentos tematicos devem ser evoluidos/consolidados, evitando duplicacao desnecessaria;
+- outra LLM ou humano deve conseguir reconstruir estado, decisoes, testes, resultados, seguranca, rollback, Git/release, pendencias e proximos passos apenas com a documentacao do pacote.
+
+---
+
+# ATUALIZACAO DE POLITICA - CHECKPOINT UNICO CUMULATIVO
+
+Data: 24/09/2026. Esta secao prevalece sobre regras antigas abaixo quando houver conflito.
+
+- `Docs/CHECKPOINT.md` passa a ser o checkpoint principal e cumulativo.
+- novas informacoes entram sempre no topo, divididas por versao/interacao;
+- nao criar novos arquivos individuais em `Docs/Checkpoints/` a cada versao;
+- arquivos individuais historicos ja existentes permanecem preservados e nao devem ser apagados;
+- nunca reduzir documentacao: apenas acrescentar contexto, evidencias, decisoes, testes, resultados e pendencias;
+- o pacote deve continuar compreensivel por outra LLM ou humano sem depender do chat.
+
+---
+
 # Politica de documentacao e continuidade
 
 Data de consolidacao: 24/09/2026.
