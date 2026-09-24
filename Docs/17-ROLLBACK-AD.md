@@ -1,3 +1,7 @@
+## v0.1.9 - rollback da membership piloto
+
+Se a operacao piloto tiver adicionado `teste.cadcolab` a `_CriaMovePastas`, o rollback funcional remove somente essa associacao. A implementacao tenta esse rollback automaticamente se a falha ocorrer depois da inclusao. A ACE `WriteProperty(member)` do grupo deve ser removida separadamente apenas quando o teste/fase terminar, usando `RemoveAccessRuleSpecific`.
+
 # Rollback do Active Directory - Automind.CadastroColaboradores
 
 ## Objetivo

@@ -15,6 +15,9 @@ public sealed class AdConnectionFactory(IConfiguration configuration)
     public string ProvisioningAuditFile => GetValue("Automind:Provisioning:AuditFile", @"C:\Automind.CadastroColaboradores\Logs\ProvisioningAudit.jsonl");
     public int InitialPasswordLength => GetInt("Automind:Provisioning:InitialPasswordLength", 14, min: 14, max: 64);
     public bool GroupWritesEnabled => GetBool("Automind:Provisioning:GroupWritesEnabled", false);
+    public bool PilotMembershipTestEnabled => GetBool("Automind:Provisioning:PilotMembershipTestEnabled", false);
+    public string PilotMembershipUserDn => GetValue("Automind:Provisioning:PilotMembershipUserDn", string.Empty);
+    public string PilotMembershipGroupDn => GetValue("Automind:Provisioning:PilotMembershipGroupDn", string.Empty);
 
     public IReadOnlySet<string> AllowedOuDns => GetSet("Automind:Ad:AllowedOuDns");
     public IReadOnlySet<string> WriteAllowedOuDns => GetSet("Automind:Provisioning:WriteAllowedOuDns");

@@ -16,7 +16,7 @@ Integrações ativas:
 
 ## Escrita no AD
 
-`Automind:Mode=PilotWrite` está ativo somente para criação de usuário na OU piloto `07.Outros`. Escrita de grupos permanece bloqueada por `GroupWritesEnabled=false`; `proxyAddresses`, `pwdLastSet` e Microsoft 365 continuam fora desta etapa.
+`Automind:Mode=PilotWrite` está ativo somente para criação de usuário na OU piloto `07.Outros`. O fluxo normal de criação ainda mantém `GroupWritesEnabled=false`. A v0.1.9 adiciona um teste isolado de membership real, limitado ao usuário `teste.cadcolab` e ao grupo `_CriaMovePastas` em `07.Outros`. `proxyAddresses`, `pwdLastSet` e Microsoft 365 continuam fora desta etapa.
 
 ## Configuração principal
 
@@ -55,9 +55,9 @@ Consulte `Docs/10-FLUXO-GIT-E-PUBLICACAO.md` e `Docs/CHECKPOINT.md`.
 
 ## Pacote atual
 
-- Versao do pacote: `0.1.7`
-- Nome curto: `CadColab-v0.1.7.zip`
-- Estado: `PilotWrite` para criação de usuário somente em `07.Outros`; escrita de grupos desabilitada
+- Versao do pacote: `0.1.9`
+- Nome curto: `CadColab-v0.1.9.zip`
+- Estado: `PilotWrite` em `07.Outros`; criação normal ainda sem grupos e teste isolado de membership habilitado somente para `teste.cadcolab` -> `_CriaMovePastas`
 - Versionamento de pacote nao cria tag Git automaticamente.
 
 
@@ -68,8 +68,13 @@ Consulte `Docs/10-FLUXO-GIT-E-PUBLICACAO.md` e `Docs/CHECKPOINT.md`.
 
 ## Documentacao cumulativa
 
-A v0.1.7 endurece a coorte de referência: além de excluir o próprio colaborador, usuários localizados em `SuggestionExcludedOuDns` (atualmente `07.Outros`) não participam da estatística de grupos. Isso impede que contas piloto/teste distorçam futuros cargos. O checkpoint principal passa a ser cumulativo com as informacoes mais novas no topo; os arquivos historicos existentes sao preservados, mas novos checkpoints individuais deixam de ser criados. Consulte `Docs/CHECKPOINT.md` e `Docs/CONTEXTO-ATUAL.md`.
+A v0.1.7 endurece a coorte de referência: além de excluir o próprio colaborador, usuários localizados em `SuggestionExcludedOuDns` (atualmente `07.Outros`) não participam da estatística de grupos. Isso impede que contas piloto/teste distorçam futuros cargos. O checkpoint principal e cumulativo, com as informacoes mais novas no topo. Documentos/checkpoints redundantes podem ser unificados e removidos somente depois que todo o conteudo for incorporado, sem perda de informacao. Consulte `Docs/CHECKPOINT.md` e `Docs/CONTEXTO-ATUAL.md`.
 
 ## v0.1.8
 
 O projeto agora declara `net10.0-windows`, coerente com IIS + Active Directory. Isso elimina os avisos CA1416 sem suprimi-los artificialmente. A documentacao de checkpoint foi consolidada em `Docs/CHECKPOINT.md` (unico, cumulativo, mais novo primeiro).
+
+
+## v0.1.9
+
+Teste real de membership isolado. O painel `MEMBERSHIP PILOTO` grava somente `teste.cadcolab` em `_CriaMovePastas`, usando a identidade `AUTOMIND\gMSA_CadColab$`, com releitura, auditoria e tentativa de rollback da associacao criada se houver falha. O fluxo normal de criacao permanece com `GroupWritesEnabled=false`.

@@ -2,6 +2,48 @@
 
 > Arquivo unico de continuidade/historico. Novas secoes entram no topo. O conteudo historico e incorporado neste mesmo arquivo; nao criar arquivos de checkpoint por versao.
 
+## 24/09/2026 - v0.1.9 - teste real controlado de membership em 07.Outros
+
+### Evidencia e autorizacao
+
+- build da v0.1.8 validado na maquina do Visual Studio: `net10.0-windows`, **0 erros e 0 warnings**;
+- a descoberta/selecao de grupos foi validada: 8 grupos comuns 5/5, 4 excecoes e busca manual com bloqueio de grupo protegido;
+- o responsavel autorizou explicitamente usar o usuario `teste.cadcolab` e o grupo `_CriaMovePastas`, ambos no laboratorio `07.Outros`, para teste real de membership;
+- esta autorizacao nao reutiliza identidade, ACLs ou logica do sistema legado CriaMovePastas: somente o objeto grupo `_CriaMovePastas` foi escolhido como alvo de teste.
+
+### Delegacao real validada
+
+- foi aplicada no objeto `CN=_CriaMovePastas,OU=07.Outros,OU=Automind,DC=automind,DC=com,DC=br` uma ACE explicita para `SG_CadastroColaboradores_AD_Writer`;
+- direito: `WriteProperty`;
+- atributo: `member` (`bf9679c0-0de6-11d0-a285-00aa003049e2`);
+- heranca: `None`;
+- resultado informado pelo responsavel: **funcionou**;
+- rollback preparado: remover somente esta ACE com `RemoveAccessRuleSpecific`; nunca restaurar ACL inteira.
+
+### Implementacao v0.1.9
+
+- adicionada operacao isolada `AplicarMembershipPiloto`;
+- alvo do teste fixado por configuracao:
+  - usuario: `CN=Teste Provisionamento Automind,OU=07.Outros,OU=Automind,DC=automind,DC=com,DC=br`;
+  - grupo: `CN=_CriaMovePastas,OU=07.Outros,OU=Automind,DC=automind,DC=com,DC=br`;
+- a operacao exige `PilotWrite`, operador autorizado e identidade tecnica `AUTOMIND\gMSA_CadColab$`;
+- grava somente o atributo `member` do grupo;
+- releitura confirma que o usuario passou a constar em `member`;
+- se houver falha depois da inclusao, o codigo tenta remover somente a membership criada pela propria operacao;
+- auditoria registra `pilot-membership-start`, `pilot-membership-complete` ou `pilot-membership-failed`;
+- `GroupWritesEnabled` permanece `false`: o fluxo normal de criacao ainda nao grava grupos. O teste real fica isolado no endpoint/painel piloto.
+
+### Proximo teste
+
+1. build local da v0.1.9;
+2. publicar pela branch `release`;
+3. no painel `MEMBERSHIP PILOTO`, confirmar a inclusao real;
+4. validar no AD que `teste.cadcolab` aparece em `Member Of -> _CriaMovePastas` e que o atributo `member` do grupo contem o DN do usuario;
+5. validar auditoria;
+6. se aprovado, integrar a mesma logica ao fluxo normal de criacao, com allowlist de grupos selecionados.
+
+---
+
 ## 24/09/2026 - v0.1.8 - Windows explicito + consolidacao real do checkpoint
 
 ### Evidencia recebida

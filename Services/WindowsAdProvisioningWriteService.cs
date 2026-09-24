@@ -25,6 +25,9 @@ public sealed class WindowsAdProvisioningWriteService(
 
     public bool IsWriteModeEnabled => directory.IsPilotWriteEnabled;
     public bool GroupWritesEnabled => directory.GroupWritesEnabled;
+    public bool PilotMembershipTestEnabled => directory.PilotMembershipTestEnabled;
+    public string PilotMembershipUserDn => directory.PilotMembershipUserDn;
+    public string PilotMembershipGroupDn => directory.PilotMembershipGroupDn;
     public IReadOnlySet<string> WriteAllowedOuDns => directory.WriteAllowedOuDns;
     public string Mode => directory.Mode;
 
@@ -192,6 +195,140 @@ public sealed class WindowsAdProvisioningWriteService(
         }
     }
 
+
+    public async Task<AdPilotMembershipResponse> ApplyPilotMembershipAsync(
+        string chamado,
+        string operatorName,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var response = new AdPilotMembershipResponse
+        {
+            UserDistinguishedName = PilotMembershipUserDn,
+            GroupDistinguishedName = PilotMembershipGroupDn
+        };
+
+        if (!IsWriteModeEnabled)
+            return PilotMembershipFail(response, "A aplicação está em modo somente leitura.");
+        if (!PilotMembershipTestEnabled)
+            return PilotMembershipFail(response, "O teste controlado de membership não está habilitado.");
+        if (string.IsNullOrWhiteSpace(PilotMembershipUserDn) || string.IsNullOrWhiteSpace(PilotMembershipGroupDn))
+            return PilotMembershipFail(response, "Usuário/grupo piloto não configurados.");
+
+        var technicalIdentity = WindowsIdentity.GetCurrent()?.Name ?? string.Empty;
+        if (!string.Equals(technicalIdentity, directory.ExpectedTechnicalIdentity, StringComparison.OrdinalIgnoreCase))
+            return PilotMembershipFail(response, "A identidade técnica atual não corresponde à gMSA autorizada.");
+
+        var operationId = Guid.NewGuid().ToString("N");
+        var addedByThisOperation = false;
+
+        try
+        {
+            await audit.AppendAsync(new ProvisioningAuditEntry
+            {
+                OperationId = operationId,
+                Chamado = chamado,
+                Operator = operatorName,
+                TechnicalIdentity = technicalIdentity,
+                Action = "pilot-membership-start",
+                Status = "started",
+                DistinguishedName = PilotMembershipUserDn,
+                OuDistinguishedName = directory.WriteAllowedOuDns.FirstOrDefault(),
+                Groups = [PilotMembershipGroupDn]
+            }, cancellationToken);
+
+            using var group = directory.Open(PilotMembershipGroupDn);
+            group.RefreshCache(["member"]);
+            var members = group.Properties["member"].Cast<object>()
+                .Select(x => x?.ToString())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x!)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (!members.Contains(PilotMembershipUserDn))
+            {
+                group.Properties["member"].Add(PilotMembershipUserDn);
+                group.CommitChanges();
+                addedByThisOperation = true;
+            }
+
+            group.RefreshCache(["member"]);
+            var readback = group.Properties["member"].Cast<object>()
+                .Select(x => x?.ToString())
+                .Any(x => string.Equals(x, PilotMembershipUserDn, StringComparison.OrdinalIgnoreCase));
+            if (!readback)
+                throw new InvalidOperationException("A releitura do grupo não confirmou a membership piloto.");
+
+            await audit.AppendAsync(new ProvisioningAuditEntry
+            {
+                OperationId = operationId,
+                Chamado = chamado,
+                Operator = operatorName,
+                TechnicalIdentity = technicalIdentity,
+                Action = "pilot-membership-complete",
+                Status = addedByThisOperation ? "success" : "already-member",
+                DistinguishedName = PilotMembershipUserDn,
+                OuDistinguishedName = directory.WriteAllowedOuDns.FirstOrDefault(),
+                Groups = [PilotMembershipGroupDn]
+            }, cancellationToken);
+
+            response.Success = true;
+            response.Changed = addedByThisOperation;
+            response.Message = addedByThisOperation
+                ? "Membership piloto gravada e confirmada por releitura no Active Directory."
+                : "O usuário piloto já era membro do grupo; nenhuma alteração adicional foi feita.";
+            return response;
+        }
+        catch (Exception exception)
+        {
+            if (addedByThisOperation)
+            {
+                try
+                {
+                    using var rollbackGroup = directory.Open(PilotMembershipGroupDn);
+                    rollbackGroup.Properties["member"].Remove(PilotMembershipUserDn);
+                    rollbackGroup.CommitChanges();
+                }
+                catch (Exception rollbackException)
+                {
+                    logger.LogError(rollbackException, "Falha no rollback da membership piloto.");
+                }
+            }
+
+            try
+            {
+                await audit.AppendAsync(new ProvisioningAuditEntry
+                {
+                    OperationId = operationId,
+                    Chamado = chamado,
+                    Operator = operatorName,
+                    TechnicalIdentity = technicalIdentity,
+                    Action = "pilot-membership-failed",
+                    Status = "failed",
+                    DistinguishedName = PilotMembershipUserDn,
+                    OuDistinguishedName = directory.WriteAllowedOuDns.FirstOrDefault(),
+                    Groups = [PilotMembershipGroupDn],
+                    ErrorType = exception.GetType().Name,
+                    ErrorCode = exception.HResult
+                }, CancellationToken.None);
+            }
+            catch { }
+
+            logger.LogWarning(exception, "Falha no teste controlado de membership do CadColab.");
+            return PilotMembershipFail(response, addedByThisOperation
+                ? "A membership falhou e o sistema tentou remover somente a associação criada nesta operação. Revise o AD antes de repetir."
+                : "A membership piloto não foi concluída. Nenhuma associação nova deve ser assumida.");
+        }
+    }
+
+    private static AdPilotMembershipResponse PilotMembershipFail(AdPilotMembershipResponse response, string message)
+    {
+        response.Success = false;
+        response.Changed = false;
+        response.Message = message;
+        return response;
+    }
 
     private string? ValidateCommand(AdProvisioningWriteCommand command)
     {

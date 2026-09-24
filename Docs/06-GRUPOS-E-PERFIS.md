@@ -1,3 +1,7 @@
+## v0.1.9 - primeiro teste real de membership
+
+O teste real autorizado usa exclusivamente `_CriaMovePastas` em `07.Outros` e o usuario `teste.cadcolab`. A aplicacao altera o atributo `member` do objeto grupo; `memberOf` no usuario e reflexo calculado pelo AD. O teste nao muda a regra de sugestao por cargo e nao habilita ainda a escrita generica dos grupos comuns/excecoes.
+
 # Grupos e perfis
 
 ## Implementação atual

@@ -8,6 +8,9 @@
     var writeMode = ViewBag.AdWriteMode is bool enabled && enabled;
     var adMode = ViewBag.AdMode as string ?? "ReadOnly";
     var groupWritesEnabled = ViewBag.AdGroupWritesEnabled is bool groupsEnabled && groupsEnabled;
+    var pilotMembershipTestEnabled = ViewBag.PilotMembershipTestEnabled is bool membershipEnabled && membershipEnabled;
+    var pilotMembershipUserDn = ViewBag.PilotMembershipUserDn as string ?? string.Empty;
+    var pilotMembershipGroupDn = ViewBag.PilotMembershipGroupDn as string ?? string.Empty;
     var writeAllowedOuDns = ViewBag.WriteAllowedOuDns as IReadOnlyList<string> ?? [];
     var writeTargetOu = writeAllowedOuDns.FirstOrDefault() ?? string.Empty;
     var commonGroups = Model.GruposSugeridos.Where(g => !g.Protegido && g.TotalComparados > 0 && g.EncontradoEm == g.TotalComparados).ToList();
@@ -34,7 +37,7 @@
             @if (writeMode)
             {
                 <strong>Piloto de escrita ativo apenas no escopo autorizado.</strong>
-                <span>Criação permitida somente na OU piloto. Grupos, proxyAddresses, pwdLastSet e Microsoft 365 permanecem bloqueados.</span>
+                <span>Criação permitida somente na OU piloto. O teste de membership é isolado ao usuário/grupo piloto configurados; proxyAddresses, pwdLastSet e Microsoft 365 permanecem bloqueados.</span>
             }
             else
             {
@@ -87,6 +90,7 @@
           data-manual-groups-url='@Url.Action("BuscarOutrosGrupos", "Colaboradores")'
           data-validation-url='@Url.Action("ValidarAd", "Colaboradores")'
           data-create-url='@Url.Action("CriarUsuarioPiloto", "Colaboradores")'
+          data-pilot-membership-url='@Url.Action("AplicarMembershipPiloto", "Colaboradores")'
           data-write-enabled="@writeMode.ToString().ToLowerInvariant()"
           data-write-target-ou="@writeTargetOu"
           data-group-writes-enabled="@groupWritesEnabled.ToString().ToLowerInvariant()">
@@ -351,5 +355,20 @@
                 </div>
             </section>
         }
+
+            @if (pilotMembershipTestEnabled)
+            {
+                <section class="panel span-full pilot-write-panel" data-pilot-membership>
+                    <div class="section-title-row">
+                        <div class="section-number">07</div>
+                        <div><span class="eyebrow">MEMBERSHIP PILOTO</span><h2>Adicionar usuário existente ao grupo autorizado</h2></div>
+                    </div>
+                    <p><strong>Usuário:</strong> <code>@pilotMembershipUserDn</code></p>
+                    <p><strong>Grupo:</strong> <code>@pilotMembershipGroupDn</code></p>
+                    <p>Este teste altera somente a associação acima e valida o resultado por releitura do atributo <code>member</code> do grupo.</p>
+                    <button type="button" class="btn btn-primary btn-wide" data-apply-pilot-membership>Aplicar membership piloto</button>
+                    <div class="topdesk-import-status" data-pilot-membership-status hidden></div>
+                </section>
+            }
     </form>
 </div>

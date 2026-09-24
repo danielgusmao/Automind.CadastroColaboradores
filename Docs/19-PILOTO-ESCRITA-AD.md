@@ -1,3 +1,7 @@
+## v0.1.9 - membership real isolada
+
+Apos a delegacao `WriteProperty(member)` no grupo `_CriaMovePastas`, a v0.1.9 adiciona um painel especifico para validar a escrita pela propria gMSA do App Pool. Usuario e grupo sao fixados em configuracao e a operacao exige confirmacao explicita.
+
 # Piloto de Escrita no Active Directory
 
 ## 1. Objetivo

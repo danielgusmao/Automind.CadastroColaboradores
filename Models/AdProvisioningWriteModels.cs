@@ -27,6 +27,21 @@ public sealed class AdProvisioningWriteCommand
     public List<string> GroupDns { get; set; } = [];
 }
 
+
+public sealed class AdPilotMembershipRequest
+{
+    public bool Confirmacao { get; set; }
+}
+
+public sealed class AdPilotMembershipResponse
+{
+    public bool Success { get; set; }
+    public bool Changed { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public string? UserDistinguishedName { get; set; }
+    public string? GroupDistinguishedName { get; set; }
+}
+
 public sealed class AdProvisioningStepResult
 {
     public string Key { get; set; } = string.Empty;

@@ -1,3 +1,7 @@
+## v0.1.9 - excecao piloto controlada para membership
+
+Existe uma unica escrita de grupo habilitavel por configuracao para teste: `teste.cadcolab` -> `_CriaMovePastas`, ambos vinculados ao laboratorio `07.Outros`. Exige `PilotWrite`, operador autorizado e gMSA esperada. O fluxo normal de criacao continua sem `GroupDns` e com `GroupWritesEnabled=false`.
+
 # Contrato de escrita no Active Directory
 
 ## Objetivo

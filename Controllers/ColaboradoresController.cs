@@ -232,6 +232,24 @@ public sealed class ColaboradoresController(
         }
     }
 
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AplicarMembershipPiloto([FromBody] AdPilotMembershipRequest request, CancellationToken cancellationToken)
+    {
+        Response.Headers["Cache-Control"] = "no-store, no-cache, max-age=0";
+        Response.Headers["Pragma"] = "no-cache";
+
+        if (!request.Confirmacao)
+            return Json(new AdPilotMembershipResponse { Success = false, Message = "A membership exige confirmação explícita do operador." });
+
+        var operatorName = User.Identity?.Name ?? HttpContext.Session.GetString("Usuario") ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(operatorName) || !await adAuthorization.IsAuthorizedAsync(operatorName, cancellationToken))
+            return Json(new AdPilotMembershipResponse { Success = false, Message = "O operador não está autorizado pelo grupo configurado no Active Directory." });
+
+        return Json(await adWriter.ApplyPilotMembershipAsync("I2609-0295", operatorName, cancellationToken));
+    }
+
     [HttpGet]
     public async Task<IActionResult> ExemploTopdesk(CancellationToken cancellationToken)
     {
@@ -341,6 +359,9 @@ public sealed class ColaboradoresController(
         ViewBag.AdWriteMode = adWriter.IsWriteModeEnabled;
         ViewBag.AdMode = adWriter.Mode;
         ViewBag.AdGroupWritesEnabled = adWriter.GroupWritesEnabled;
+        ViewBag.PilotMembershipTestEnabled = adWriter.PilotMembershipTestEnabled;
+        ViewBag.PilotMembershipUserDn = adWriter.PilotMembershipUserDn;
+        ViewBag.PilotMembershipGroupDn = adWriter.PilotMembershipGroupDn;
         ViewBag.WriteAllowedOuDns = adWriter.WriteAllowedOuDns.ToArray();
 
         try

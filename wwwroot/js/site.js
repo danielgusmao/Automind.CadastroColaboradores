@@ -106,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const manualGroupsUrl = form.dataset.manualGroupsUrl;
     const validationUrl = form.dataset.validationUrl;
     const createUrl = form.dataset.createUrl;
+    const pilotMembershipUrl = form.dataset.pilotMembershipUrl;
     const writeEnabled = form.dataset.writeEnabled === 'true';
     const writeTargetOu = (form.dataset.writeTargetOu || '').trim();
     const groupWritesEnabled = form.dataset.groupWritesEnabled === 'true';
@@ -125,6 +126,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const createStatus = form.querySelector('[data-create-status]');
     const passwordPanel = form.querySelector('[data-temporary-password]');
     const passwordValue = form.querySelector('[data-password-value]');
+    const pilotMembershipButton = form.querySelector('[data-apply-pilot-membership]');
+    const pilotMembershipStatus = form.querySelector('[data-pilot-membership-status]');
     const ticketSource = document.querySelector('[data-ticket-source]');
     const ticketHidden = form.querySelector('[name="Chamado"]');
     const loginInput = form.querySelector('[data-samaccountname]');
@@ -637,6 +640,27 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             createButton.textContent = original;
             createButton.disabled = true;
+        }
+    });
+
+
+    pilotMembershipButton?.addEventListener('click', async () => {
+        if (!pilotMembershipUrl) return;
+        const message = 'CONFIRMA a inclusão do usuário piloto existente no grupo _CriaMovePastas?\n\nEsta operação grava uma membership real no Active Directory usando a identidade técnica do aplicativo.';
+        if (!window.confirm(message)) return;
+
+        clearStatus(pilotMembershipStatus);
+        const original = pilotMembershipButton.textContent;
+        pilotMembershipButton.disabled = true;
+        pilotMembershipButton.textContent = 'Aplicando membership...';
+        try {
+            const result = await postJson(pilotMembershipUrl, { confirmacao: true });
+            setStatus(pilotMembershipStatus, result.message || 'Operação concluída.', result.success ? 'success' : 'error');
+        } catch (error) {
+            setStatus(pilotMembershipStatus, `Falha na chamada de membership (${error.message}).`, 'error');
+        } finally {
+            pilotMembershipButton.textContent = original;
+            pilotMembershipButton.disabled = false;
         }
     });
 

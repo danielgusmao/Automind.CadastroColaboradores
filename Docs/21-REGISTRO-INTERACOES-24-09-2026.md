@@ -1,3 +1,10 @@
+## 14:xx - autorizacao e delegacao real de membership piloto
+
+- responsavel esclareceu que deseja testar a associacao do usuario a um grupo real dentro do laboratorio `07.Outros`;
+- autorizou explicitamente `teste.cadcolab` -> `_CriaMovePastas`;
+- ACE `WriteProperty(member)` foi aplicada ao grupo para `SG_CadastroColaboradores_AD_Writer` e o responsavel confirmou: `funcionou`;
+- proxima versao v0.1.9 implementa teste isolado pela propria gMSA, sem habilitar ainda grupos no fluxo normal de criacao.
+
 # Registro de interacoes e decisoes - 24/09/2026 - MAIS NOVO PRIMEIRO
 
 ## Build v0.1.6 aprovado e decisao de acelerar/fechar a fase de grupos
