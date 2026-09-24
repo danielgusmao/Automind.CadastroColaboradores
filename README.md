@@ -16,9 +16,7 @@ Integrações ativas:
 
 ## Escrita no AD
 
-**Continua bloqueada nesta entrega.**
-
-O projeto contém a rotina de provisionamento piloto preparada, mas `Automind:Mode=ReadOnly` mantém a criação de usuários desabilitada. Escrita de grupos, `proxyAddresses`, `pwdLastSet` e Microsoft 365 continuam fora desta etapa.
+`Automind:Mode=PilotWrite` está ativo somente para criação de usuário na OU piloto `07.Outros`. Escrita de grupos permanece bloqueada por `GroupWritesEnabled=false`; `proxyAddresses`, `pwdLastSet` e Microsoft 365 continuam fora desta etapa.
 
 ## Configuração principal
 
@@ -44,7 +42,7 @@ Não inserir usuário/senha administrativa no arquivo de configuração.
 5. Consultar grupos reais.
 6. Clicar em `Validar no AD`.
 7. Conferir a prévia.
-8. Parar: nenhuma escrita é executada nesta versão.
+8. Em `PilotWrite`, a criação do usuário só pode ocorrer em `07.Outros`; memberships de grupos continuam sem escrita.
 
 ## Publicação
 
@@ -56,12 +54,17 @@ Consulte `Docs/10-FLUXO-GIT-E-PUBLICACAO.md` e `Docs/CHECKPOINT.md`.
 
 ## Pacote atual
 
-- Versao do pacote: `0.1.4`
-- Nome curto: `CadColab-v0.1.4.zip`
+- Versao do pacote: `0.1.5`
+- Nome curto: `CadColab-v0.1.5.zip`
 - Estado: `PilotWrite` para criação de usuário somente em `07.Outros`; escrita de grupos desabilitada
 - Versionamento de pacote nao cria tag Git automaticamente.
 
 
-## Estado da linha piloto - v0.1.4
+## Estado da linha piloto - v0.1.5
 
-`Automind:Mode=PilotWrite` permanece ativo. A escrita de criação de usuário continua restrita a `07.Outros`; `GroupWritesEnabled=false`. A v0.1.4 amplia somente a descoberta/seleção de grupos (comuns, exceções e busca manual), sem adicionar o usuário a grupos. Microsoft 365, Teams, `proxyAddresses` e `pwdLastSet` continuam bloqueados.
+`Automind:Mode=PilotWrite` permanece ativo. A escrita de criação de usuário continua restrita a `07.Outros`; `GroupWritesEnabled=false`. A funcionalidade da v0.1.4 amplia a descoberta/seleção de grupos (comuns, exceções e busca manual), sem adicionar o usuário a grupos. Microsoft 365, Teams, `proxyAddresses` e `pwdLastSet` continuam bloqueados.
+
+
+## Documentacao cumulativa
+
+A v0.1.5 restaura os checkpoints individuais e formaliza a regra de que a documentacao nunca pode diminuir entre pacotes. Consulte `Docs/00-LEIA-PRIMEIRO.md` e `Docs/CONTEXTO-ATUAL.md`.

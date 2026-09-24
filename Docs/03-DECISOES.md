@@ -159,3 +159,13 @@
 - seleção de acesso terá três origens: comuns ao cargo, exceções observadas e outros grupos pesquisados manualmente no AD;
 - qualquer grupo manual deve ser resolvido/revalidado no backend e grupos protegidos continuam proibidos;
 - `GroupWritesEnabled=false` permanece até fase posterior de delegação/allowlist de escrita de grupos.
+
+## 24/09/2026 - politica primordial de documentacao cumulativa
+
+- documentacao e checkpoint passam a ser requisito de integridade do pacote;
+- nenhum documento/checkpoint historico pode ser removido em versoes futuras sem autorizacao explicita;
+- `Docs/CP-HIST.md` e consolidacao adicional, nao substituto para `Docs/Checkpoints/`;
+- toda interacao relevante deve acrescentar informacao ao checkpoint/historico;
+- cada pacote deve ser compreensivel por outro humano/LLM sem acesso ao chat;
+- antes da entrega, comparar o inventario de documentos com a versao anterior e confirmar que nada foi perdido;
+- nomes curtos continuam desejaveis para evitar problemas de caminho, mas nunca a custa de apagar conteudo historico.

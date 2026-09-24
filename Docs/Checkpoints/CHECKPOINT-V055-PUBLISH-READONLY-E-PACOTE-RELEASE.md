@@ -50,7 +50,7 @@ Portanto, esta etapa nao habilitou:
 Durante a preparacao de um pacote completo para release/teste:
 
 - nao gerar um ZIP de checkpoint separado a cada etapa;
-- manter `Docs/CHECKPOINT.md`, `Docs/Checkpoints/` e demais documentos atualizados dentro do proprio pacote completo do projeto;
+- manter `Docs/CHECKPOINT.md`, `Docs/CP-HIST.md` e demais documentos atualizados dentro do proprio pacote completo do projeto;
 - entregar o checkpoint junto com o pacote completo;
 - voltar a gerar checkpoint separado apenas ao entrar em uma nova fase de testes, quando isso ajudar a continuidade, ou mediante pedido explicito;
 - a regra anterior de consolidar varios testes somente leitura/simulacao em uma unica linha de PowerShell continua valida;
@@ -59,3 +59,5 @@ Durante a preparacao de um pacote completo para release/teste:
 ## Proximo marco
 
 O proximo pacote pode seguir para commit/publicacao em `ReadOnly` para validacao do deploy. A ativacao `PilotWrite` continua sendo uma etapa separada e nao deve ocorrer implicitamente durante o deploy.
+
+---

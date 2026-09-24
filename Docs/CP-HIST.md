@@ -4981,3 +4981,45 @@ Mudança de prioridade autorizada durante os testes: antes de habilitar escrita 
 - a antiga previsão de usar `v0.1.4` para habilitar escrita de grupos fica superada por esta decisão; a escrita de grupos será versionada somente depois de ACL/allowlist e teste controlado aprovados.
 
 Validação executável neste ambiente: `site.js` passou em `node --check`. O ambiente de geração não possui .NET SDK; build .NET 10 continua obrigatório na máquina do Visual Studio antes de commit/push.
+
+## CHECKPOINT-V062-DOCUMENTACAO-CUMULATIVA-E-RESTAURACAO.md
+
+# CHECKPOINT V062 - Documentacao cumulativa e restauracao integral
+
+Data: 24/09/2026.
+
+## Motivo
+
+O responsavel reforcou que a documentacao/checkpoint e requisito primordial do projeto. Pacotes recentes haviam consolidado o historico em `CP-HIST.md`, mas deixaram de carregar os arquivos individuais `Docs/Checkpoints/`, o que foi considerado perda de documentacao.
+
+## Correcao executada
+
+- restaurados os checkpoints individuais V001-V054 do pacote historico;
+- preservado `CP-HIST.md` integralmente;
+- adicionados arquivos individuais V055-V061;
+- adicionado contexto historico v0.1.3 e contexto atual;
+- adicionado registro das interacoes recentes;
+- adicionada politica formal de documentacao cumulativa;
+- atualizado o checkpoint corrente sem remover nenhuma secao anterior.
+
+## Regra permanente
+
+Nova versao nunca pode ter menos documentacao que a anterior. Consolidar, resumir ou reorganizar e permitido apenas como camada adicional. O conteudo historico deve permanecer disponivel no pacote.
+
+## Estado tecnico
+
+Nenhuma mudanca funcional de provisionamento foi introduzida nesta rodada. O codigo funcional permanece equivalente a v0.1.4:
+
+- `Mode=PilotWrite`;
+- escrita de usuario somente em `07.Outros`;
+- `GroupWritesEnabled=false`;
+- M365 bloqueado;
+- nenhuma membership real habilitada.
+
+## Pacote
+
+`CadColab-v0.1.5.zip`.
+
+### Verificacao documental adicional
+
+Foi adicionado `Docs/DOC-MANIFEST-SHA256.txt`, contendo o inventario e SHA-256 dos documentos do pacote (exceto o proprio manifesto). Esse arquivo deve ser usado como apoio para comparar a integridade documental em versoes futuras.

@@ -76,7 +76,7 @@ Antes de `git add .`, revisar sempre `git status --short`. A pasta local `artifa
 A partir desta rodada, a regra anterior de "sem versionamento numerico" fica substituida **para os pacotes de atualizacao**:
 
 - todo pacote completo deve usar nome curto: `CadColab-vX.Y.Z.zip`;
-- versao atual da linha piloto: `0.1.4`;
+- versao atual da linha piloto: `0.1.5`;
 - ajustes incrementais desta linha usam patch: `0.1.1`, `0.1.2`, `0.1.3`, `0.1.4` etc.;
 - mudanca funcional maior ainda dentro do piloto pode incrementar minor (`0.2.0`);
 - `VERSION.txt` na raiz registra a versao do pacote;
@@ -86,3 +86,16 @@ A partir desta rodada, a regra anterior de "sem versionamento numerico" fica sub
 - o arquivo `Docs/CHECKPOINT.md` continua sendo o checkpoint corrente/resumido.
 
 Motivo: evitar falhas de extracao/copia por comprimento excessivo de caminho e manter cada atualizacao claramente identificada.
+
+## Integridade documental obrigatoria - 24/09/2026
+
+Antes de gerar/entregar qualquer novo `CadColab-vX.Y.Z.zip`:
+
+1. partir do pacote mais novo;
+2. preservar todos os arquivos de documentacao anteriores;
+3. atualizar `CHECKPOINT.md`, `CP-HIST.md` e o contexto atual;
+4. manter os checkpoints individuais em `Docs/Checkpoints/`;
+5. comparar o inventario de `Docs/` com a versao anterior;
+6. nao entregar o pacote se um documento anterior tiver desaparecido sem autorizacao explicita.
+
+A consolidacao historica existe para facilitar leitura; nunca mais deve ser usada para remover os arquivos historicos individuais.

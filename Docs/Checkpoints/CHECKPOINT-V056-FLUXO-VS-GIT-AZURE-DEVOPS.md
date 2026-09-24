@@ -43,3 +43,5 @@ git push azure release
 - Nao copiar o ZIP de codigo-fonte diretamente para a pasta publicada do IIS como substituto do publish.
 - Antes de `git add .`, revisar arquivos gerados. A pasta `artifacts/` observada no projeto pode conter publish/ZIP local e nao deve entrar em commit por acidente.
 - O `.gitignore` atual ainda nao exclui `artifacts/`; qualquer alteracao nele deve ser deliberada e revisada antes de aplicar.
+
+---

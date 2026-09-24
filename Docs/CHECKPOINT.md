@@ -906,3 +906,23 @@ Mudança de prioridade autorizada durante os testes: antes de habilitar escrita 
 - a antiga previsão de usar `v0.1.4` para habilitar escrita de grupos fica superada por esta decisão; a escrita de grupos será versionada somente depois de ACL/allowlist e teste controlado aprovados.
 
 Validação executável neste ambiente: `site.js` passou em `node --check`. O ambiente de geração não possui .NET SDK; build .NET 10 continua obrigatório na máquina do Visual Studio antes de commit/push.
+
+## 24/09/2026 - V062 / pacote v0.1.5: restauracao integral da documentacao e regra cumulativa
+
+Correcao de continuidade autorizada pelo responsavel.
+
+- confirmado que o ZIP historico rotulado como `checkpoint-v0.0.50` continha checkpoints individuais ate V054;
+- confirmado que existem marcos posteriores V055, V056, V057, V058, V059, V060 e V061;
+- todos os arquivos individuais V001-V054 foram restaurados em `Docs/Checkpoints/`;
+- criados arquivos individuais para V055-V061 sem remover o historico consolidado;
+- `Docs/CP-HIST.md` permanece como consolidacao adicional;
+- incorporado o contexto de continuidade da v0.1.3 em `Docs/Contextos/`;
+- criado `Docs/CONTEXTO-ATUAL.md`;
+- criado registro detalhado das interacoes recentes e das correcoes de escopo/grupos;
+- formalizada regra primordial: documentacao nunca mais diminui entre pacotes; novas versoes somente acrescentam;
+- antes de cada entrega futura, o inventario de documentos deve ser comparado com a versao anterior;
+- pacote passa a `CadColab-v0.1.5.zip`;
+- nao ha mudanca funcional de provisionamento em relacao a v0.1.4; esta rodada e de integridade documental/continuidade;
+- `Automind:Mode=PilotWrite`, `WriteAllowedOuDns=07.Outros`, `GroupWritesEnabled=false` e M365 desabilitado permanecem inalterados;
+- escrita real de memberships continua bloqueada.
+- adicionado `Docs/DOC-MANIFEST-SHA256.txt` com inventario e SHA-256 dos documentos para facilitar a verificacao de que versoes futuras nao perderam arquivos;

@@ -66,3 +66,13 @@ Esses dados não estão hardcoded no serviço: são resultado esperado do AD rea
 ## Usuário de referência
 
 Permanece fora desta entrega. O botão da interface está desabilitado para não simular uma funcionalidade que ainda não foi implementada.
+
+## Regra de escopo confirmada - 24/09/2026
+
+A OU de destino do novo usuario e o escopo usado para pesquisa de referencia sao conceitos diferentes:
+
+- escrita piloto do usuario permanece restrita a `07.Outros`;
+- pesquisa de usuarios equivalentes e grupos pode consultar todas as OUs permitidas pelo escopo de leitura;
+- grupos reais de outras OUs servem como referencia de cargo sem receber alteracao durante essa fase;
+- nao criar grupo ficticio apenas para testar a sugestao;
+- `_CriaMovePastas` existente em `07.Outros` pertence ao legado e nao participa do CadColab.
