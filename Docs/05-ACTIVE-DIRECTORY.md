@@ -186,7 +186,7 @@ Regras obrigatorias:
 
 O rollback deve preferir a remocao das ACEs/associacoes criadas pelo projeto, em vez da restauracao integral e cega de ACLs.
 
-A especificacao completa esta em `Docs/Checkpoints/CHECKPOINT-V017-POLITICA-MUDANCA-AD-ROLLBACK.md`.
+A especificacao completa esta em `Docs/CP-HIST.md`
 
 ## Baseline de seguranca antes da identidade tecnica - 23/09/2026
 

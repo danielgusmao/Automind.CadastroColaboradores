@@ -5,7 +5,7 @@
 A partir de 2026-09-23, este arquivo deixa de acumular todo o historico em um unico documento.
 
 - `Docs/CHECKPOINT.md` e apenas o indice/resumo atual.
-- O historico fica em `Docs/Checkpoints/CHECKPOINT-VNNN-*.md`.
+- O historico fica em `Docs/CP-HIST.md`
 - Versoes anteriores nao devem ser reescritas retroativamente; novas evidencias entram em uma nova versao.
 - Isso reduz o tamanho de cada arquivo e facilita reutilizacao por outros agentes LLM.
 
@@ -241,7 +241,7 @@ Nao criar gMSA, grupo tecnico ou delegacoes ainda. Primeiro concluir dois baseli
 - Nenhuma alteração foi executada.
 - Regra editorial: vocabulário técnico simples, objetivo e sem redundância.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V019-HERANCA-ACL-E-BASELINE-IIS.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 — V020: conta legada e worker IIS
 
@@ -254,7 +254,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V019-HERANCA-ACL-E-BASELINE-IIS.md`.
 - credencial exibida por diagnóstico não será registrada/repetida; rotação será tratada separadamente;
 - nenhuma alteração foi executada.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V020-CONTA-LEGADA-E-WORKER-IIS.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 — V021: replicacao AD e identidade efetiva do IIS
 
@@ -265,7 +265,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V020-CONTA-LEGADA-E-WORKER-IIS.md`.
 - nao foram encontrados servicos ou tarefas agendadas usando essa conta no servidor consultado;
 - nenhuma alteracao foi executada.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V021-REPLICACAO-E-IDENTIDADE-EFETIVA-IIS.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 — V022: contexto legado CriaMovePastas
 
@@ -277,7 +277,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V021-REPLICACAO-E-IDENTIDADE-EFETIVA-IIS.
 - `CadastroColaboradores` mantém a arquitetura planejada com gMSA própria e delegação mínima;
 - nenhuma alteração foi executada.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V022-CONTEXTO-LEGADO-CRIAMOVEPASTAS.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 — V023: pré-requisitos de gMSA
 
@@ -288,7 +288,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V022-CONTEXTO-LEGADO-CRIAMOVEPASTAS.md`.
 - horário sincronizado com o domínio;
 - nenhuma alteração foi executada.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V023-GMSA-PREREQUISITOS-REDE.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 — V024: KDS, níveis funcionais e container de gMSA
 
@@ -300,7 +300,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V023-GMSA-PREREQUISITOS-REDE.md`.
 - próxima etapa continua somente leitura: consultar diretamente a chave KDS existente e executar `Test-KdsRootKey` com seu GUID;
 - nenhuma alteração foi executada.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V024-KDS-NIVEIS-FUNCIONAIS-E-CONTAINER-GMSA.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 — V025: KDS validado para gMSA
 
@@ -312,7 +312,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V024-KDS-NIVEIS-FUNCIONAIS-E-CONTAINER-GM
 - proxima etapa: simular (`-WhatIf`) a criacao da `gMSA_CadColab$`, sem escrita, com `SV052022-6121$` como unico host autorizado;
 - antes da criacao real, registrar comando, efeito esperado e rollback exato.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V025-KDS-VALIDADO-GMSA.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 — V026: simulacao de criacao da gMSA validada
 
@@ -324,7 +324,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V025-KDS-VALIDADO-GMSA.md`.
 - rollback preparado: remover somente `gMSA_CadColab` se a validacao falhar ou se a mudanca precisar ser desfeita;
 - a escrita depende de autorizacao explicita do operador.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V026-WHATIF-GMSA-VALIDADO.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 - V027: gMSA criada e contrato de escrita AD
 
@@ -337,7 +337,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V026-WHATIF-GMSA-VALIDADO.md`.
 - grupos terao allowlist de escrita separada;
 - escrita de usuarios permanece bloqueada ate concluir delegacoes e testes.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V027-GMSA-CRIADA-E-CONTRATO-ESCRITA-AD.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 - V028: gMSA instalada no servidor
 
@@ -349,7 +349,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V027-GMSA-CRIADA-E-CONTRATO-ESCRITA-AD.md
 - rollback desta etapa: `Uninstall-ADServiceAccount -Identity gMSA_CadColab`;
 - proxima etapa permanece em leitura para definir o grupo tecnico e seu local de criacao.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V028-GMSA-INSTALADA-NO-SERVIDOR.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 - V029: gMSA validada e padrao do grupo tecnico
 
@@ -362,7 +362,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V028-GMSA-INSTALADA-NO-SERVIDOR.md`.
 - antes da criacao real: capturar ACL da OU, confirmar ausencia do nome e executar `New-ADGroup -WhatIf`;
 - nenhuma nova escrita no AD foi executada nesta etapa.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V029-GMSA-VALIDADA-E-GRUPO-TECNICO.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 - V030: baseline e simulacao do grupo tecnico
 
@@ -375,7 +375,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V029-GMSA-VALIDADA-E-GRUPO-TECNICO.md`.
 - rollback preparado: remover somente esse grupo se a validacao falhar ou se a mudanca precisar ser desfeita;
 - a criacao real depende de autorizacao explicita do operador.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V030-GRUPO-TECNICO-WHATIF.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 - V031: grupo tecnico criado
 
@@ -388,7 +388,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V030-GRUPO-TECNICO-WHATIF.md`.
 - nenhuma delegacao de OU/grupo e nenhuma alteracao no IIS executada;
 - proxima etapa: validar e simular a inclusao da `gMSA_CadColab$` como unico membro inicial.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V031-GRUPO-TECNICO-CRIADO.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 - V032: rollback completo AD e simulacao de membership
 
@@ -399,7 +399,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V031-GRUPO-TECNICO-CRIADO.md`.
 - toda nova escrita passa a exigir: comando, efeito esperado, rollback e validacao antes da execucao;
 - nenhuma nova escrita foi executada nesta rodada.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V032-ROLLBACK-COMPLETO-AD-E-MEMBERSHIP-WHATIF.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 - V033: gMSA vinculada ao grupo tecnico
 
@@ -411,7 +411,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V032-ROLLBACK-COMPLETO-AD-E-MEMBERSHIP-WH
 - rollback especifico da associacao registrado em `Docs/17-ROLLBACK-AD.md`;
 - proxima etapa permanece somente leitura: confirmar ausencia de ACEs do grupo tecnico e mapear GUIDs exatos antes de qualquer delegacao.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V033-GMSA-VINCULADA-GRUPO-TECNICO.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 - V034: ausencia de ACL confirmada e correcao do teste de GUIDs
 
@@ -422,7 +422,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V033-GMSA-VINCULADA-GRUPO-TECNICO.md`.
 - o teste sera repetido com a coleta do `foreach` em variavel antes do `Format-Table`;
 - nenhuma ACL, usuario, grupo, gMSA ou configuracao IIS foi alterada nesta rodada.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V034-AUSENCIA-ACL-E-CORRECAO-GUIDS.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 
 ## 23/09/2026 - V035: GUIDs de schema retornados, rotulacao pendente
@@ -434,7 +434,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V034-AUSENCIA-ACL-E-CORRECAO-GUIDS.md`.
 - antes de qualquer delegacao, repetir consulta somente leitura exibindo explicitamente `atributo -> GUID`;
 - nenhuma ACL ou configuracao IIS foi alterada nesta rodada.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V035-GUIDS-SCHEMA-RETORNADOS-PENDENTE-ROTULACAO.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 - V036: mapeamento de GUIDs validado
 
@@ -444,7 +444,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V035-GUIDS-SCHEMA-RETORNADOS-PENDENTE-ROT
 - proxima etapa: construir as ACEs propostas somente em memoria, sem `Set-Acl`;
 - permissoes amplas permanecem fora da proposta inicial.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V036-MAPEAMENTO-GUIDS-VALIDADO.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 - V037: ACEs em memoria validadas
 
@@ -456,7 +456,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V036-MAPEAMENTO-GUIDS-VALIDADO.md`.
 - `pwdLastSet` nao faz parte do contrato atual e nao sera delegado sem aprovacao separada;
 - proximo passo: simular tambem o rollback exato das 16 ACEs em memoria, sem alterar o AD.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V037-ACES-MEMORIA-VALIDADAS.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 - V038: rollback das ACEs validado em memoria
 
@@ -469,7 +469,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V037-ACES-MEMORIA-VALIDADAS.md`.
 - antes de qualquer delegacao real, sera salvo um baseline local da ACL/SDDL para permitir comparacao e recuperacao controlada;
 - proxima etapa continua sem escrita no AD.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V038-ROLLBACK-ACES-MEMORIA-VALIDADO.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 - V039: baseline da OU piloto 07.Outros
 
@@ -480,7 +480,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V038-ROLLBACK-ACES-MEMORIA-VALIDADO.md`.
 - nenhuma ACL do AD foi alterada;
 - proximo passo: simular as 16 ACEs somente em memoria na OU `07.Outros`.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V039-BASELINE-07-OUTROS.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 - V040: simulacao da delegacao em 07.Outros validada
 
@@ -493,7 +493,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V039-BASELINE-07-OUTROS.md`.
 - baseline local da ACL/SDDL ja existe e os hashes foram registrados no V039;
 - proxima escrita possivel: aplicar as 16 ACEs somente em `07.Outros`, com autorizacao explicita e rollback granular preparado.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V040-SIMULACAO-07-OUTROS-VALIDADA.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 - V041: autorizacao da ACL piloto em 07.Outros
 
@@ -506,7 +506,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V040-SIMULACAO-07-OUTROS-VALIDADA.md`.
 - rollback granular permanece obrigatorio e remove somente as 16 ACEs do projeto;
 - nenhuma outra OU esta autorizada nesta etapa.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V041-AUTORIZACAO-ACL-PILOTO-07-OUTROS.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 - V042: ACL piloto aplicada em 07.Outros; validacao detalhada pendente
 
@@ -522,7 +522,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V041-AUTORIZACAO-ACL-PILOTO-07-OUTROS.md`
 - por politica de parada na primeira anomalia, nenhuma nova escrita deve ocorrer ate confirmar por leitura se ha duplicidade real ou apenas problema de exibicao/copia;
 - rollback granular continua preparado e NAO deve ser executado sem autorizacao ou validacao de necessidade.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V042-ACL-PILOTO-APLICADA-VALIDACAO-DETALHADA-PENDENTE.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 
 ## 23/09/2026 - V043: ACL piloto validada com 16 ACEs exatas
@@ -538,7 +538,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V042-ACL-PILOTO-APLICADA-VALIDACAO-DETALH
 - nenhuma nova escrita foi executada nesta validacao;
 - proximo passo: confirmar a visibilidade da ACL a partir do servidor `10.1.2.21`, somente leitura, antes de preparar a troca de identidade do App Pool.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V043-ACL-PILOTO-VALIDADA-16-ACES.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 - V044: validacao no servidor interrompida por tipo de HostName
 
@@ -551,7 +551,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V043-ACL-PILOTO-VALIDADA-16-ACES.md`.
 - nao ha evidência, por este resultado, de falha de replicacao;
 - proximo passo: repetir a mesma verificacao convertendo explicitamente o primeiro `HostName` para string.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V044-VALIDACAO-SERVIDOR-FALHA-TIPO-HOSTNAME.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 - V045: ACL e membership confirmadas a partir do servidor 10.1.2.21
 
@@ -564,7 +564,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V044-VALIDACAO-SERVIDOR-FALHA-TIPO-HOSTNA
 - nenhuma escrita ocorreu nesta validacao;
 - proximo passo: capturar o baseline atual do App Pool `CadastroColaboradores` e da identidade efetiva do worker antes de qualquer mudanca de identidade no IIS.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V045-ACL-E-MEMBERSHIP-VISIVEIS-NO-SERVIDOR.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 - V046: baseline IIS parcial; Add-Type nao sera usado como referencia definitiva
 
@@ -577,7 +577,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V045-ACL-E-MEMBERSHIP-VISIVEIS-NO-SERVIDO
 - por seguranca, o baseline definitivo sera repetido via `WebAdministration`/`appcmd`, sem `Add-Type` e sem leitura de senha;
 - antes de trocar a identidade do pool, revisar tambem ACL NTFS da pasta da aplicacao.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V046-BASELINE-IIS-PARCIAL-E-FALHA-ADD-TYPE.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 - V047: baseline IIS e NTFS confirmado
 
@@ -590,7 +590,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V046-BASELINE-IIS-PARCIAL-E-FALHA-ADD-TYP
 - nenhum direito NTFS novo sera concedido antes de comprovar necessidade;
 - proximo passo: somente leitura para confirmar grupo local `Users`, autenticacao IIS e baseline exportavel antes de preparar a troca de identidade.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V047-BASELINE-IIS-NTFS-CONFIRMADO.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 23/09/2026 - V048: grupo local e propriedades IIS parciais
 
@@ -603,7 +603,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V047-BASELINE-IIS-NTFS-CONFIRMADO.md`.
 - nenhuma alteracao ocorreu em IIS, AD ou NTFS;
 - proximo passo: leitura de autenticacao corrigida e `manualGroupMembership`/`IIS_IUSRS` antes de qualquer troca de identidade.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V048-GRUPO-LOCAL-E-PROPRIEDADES-IIS-PARCIAIS.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## Atualizacao 23/09/2026 - pre-requisitos IIS/gMSA confirmados
 
@@ -648,7 +648,7 @@ A partir deste checkpoint, a regra anterior de limitar a rodada a poucos testes 
 - `ALTERACAO REAL` continua com uma mudanca por vez, sempre com efeito esperado, rollback e validacao preparados antes da execucao;
 - nao concatenar varias escritas reais independentes apenas para ganhar velocidade.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V049-BACKUP-IIS-E-REGRA-TESTES-CONSOLIDADOS.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 24/09/2026 - V050: App Pool alterado para gMSA; validacao HTTP inicial inconclusiva
 
@@ -664,7 +664,7 @@ A primeira requisicao HTTP de validacao usou `127.0.0.1` com `Host=cadastro.auto
 
 Proximo passo: validacao somente leitura consolidada usando o IP real `10.1.2.21`/FQDN, seguida de checagem do worker, owner do processo, estado do pool e eventos WAS/W3SVC/IIS/AspNetCore. Nenhuma nova escrita ate concluir essa validacao.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V050-APPPOOL-GMSA-VALIDACAO-HTTP-INCONCLUSIVA.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 24/09/2026 - V051: App Pool gMSA validado ponta a ponta
 
@@ -686,7 +686,7 @@ A validacao anterior por `127.0.0.1` foi definitivamente classificada como teste
 
 Estado atual: nao executar rollback, nao conceder ACL NTFS/direitos locais adicionais e nao usar `iisreset`. A proxima etapa deve validar as operacoes reais da aplicacao sob a identidade gMSA e, para qualquer escrita AD, manter uma alteracao real por vez com rollback preparado.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V051-APPPOOL-GMSA-VALIDADO.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 24/09/2026 - V052: configuracao da aplicacao permanece bloqueada para escrita
 
@@ -710,7 +710,7 @@ Revisao do codigo atual confirmou ainda que a linha implantada possui apenas ser
 
 Proximo passo recomendado: preparar a implementacao de escrita piloto limitada a `07.Outros`, mantendo `Microsoft365.Enabled=false`, sem alterar outras OUs e sem habilitar escrita antes de build, revisao, rollback de codigo/configuracao e autorizacao explicita.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V052-CONFIG-READONLY-POS-GMSA.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 24/09/2026 - V053: implementacao de escrita piloto preparada, ainda ReadOnly
 
@@ -728,7 +728,7 @@ Detalhes: `Docs/Checkpoints/CHECKPOINT-V052-CONFIG-READONLY-POS-GMSA.md`.
 - nenhuma publicacao, alteracao de servidor ou criacao de usuario foi feita nesta etapa;
 - proximo passo obrigatorio: build em maquina com .NET 10 SDK e revisao do resultado antes de publicar.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V053-IMPLEMENTACAO-ESCRITA-PILOTO-PREPARADA.md` e `Docs/19-PILOTO-ESCRITA-AD.md`.
+Detalhes: `Docs/CP-HIST.md` e `Docs/19-PILOTO-ESCRITA-AD.md`.)
 
 ## 24/09/2026 - V054: build local do piloto aprovado, ainda ReadOnly
 
@@ -756,7 +756,7 @@ Conclusao: o codigo do piloto compila e mantem as travas previstas. Nenhuma publ
 
 Proximo passo: preparar publicacao da nova versao **ainda em ReadOnly**, com rollback do deploy definido antes de qualquer mudanca no servidor. Somente depois da validacao do deploy em ReadOnly sera preparada a ativacao `PilotWrite`.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V054-BUILD-PILOTO-READONLY-APROVADO.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 24/09/2026 - V055: publish ReadOnly validado e checkpoint incorporado ao pacote completo
 
@@ -777,7 +777,7 @@ Nova regra operacional: durante a preparacao do pacote completo para release/tes
 
 O estado continua seguro para deploy de validacao porque o pacote permanece `ReadOnly`. `PilotWrite` devera ser ativado somente em etapa separada, com autorizacao e rollback preparados.
 
-Detalhes: `Docs/Checkpoints/CHECKPOINT-V055-PUBLISH-READONLY-E-PACOTE-RELEASE.md`.
+Detalhes: `Docs/CP-HIST.md`
 
 ## 24/09/2026 - V056: fluxo Visual Studio + Git + Azure DevOps formalizado
 
@@ -796,4 +796,51 @@ Fluxo operacional informado e aprovado para a fase atual de ajustes iniciais:
 - checkpoint continua incorporado ao pacote completo; nao gerar ZIP separado durante esta fase;
 - revisar `git status --short` antes de `git add .`, principalmente por causa da pasta local `artifacts/` gerada por publishes de teste.
 
-Referencia detalhada: `Docs/10-FLUXO-GIT-E-PUBLICACAO.md` e `Docs/Checkpoints/CHECKPOINT-V056-FLUXO-VS-GIT-AZURE-DEVOPS.md`.
+Referencia detalhada: `Docs/10-FLUXO-GIT-E-PUBLICACAO.md` e `Docs/CP-HIST.md`
+
+## 24/09/2026 - V057: pacote curto/versionado e revisao da tela ReadOnly
+
+Nova regra de distribuicao:
+
+- pacote completo atual passa a `CadColab-v0.1.0.zip`;
+- proximos ajustes desta linha: `v0.1.1`, `v0.1.2`, ...;
+- `VERSION.txt` registra a versao;
+- nao criar tag Git automaticamente; manter commits na branch `release`;
+- historico detalhado dos checkpoints foi consolidado em `Docs/CP-HIST.md` para reduzir caminhos longos;
+- codigo funcional nao foi alterado nesta rodada de reorganizacao/nomenclatura.
+
+Revisao da tela publicada em 24/09/2026:
+
+- banner confirma `AD REAL - SOMENTE LEITURA` e `Automind:Mode=ReadOnly`;
+- chamado `I2609-0295` carregado;
+- OU selecionada `07.Outros`;
+- sugestao de grupos retornou 8 comuns, 4 excecoes e 0 protegidos;
+- o piloto continua sem gravacao de memberships;
+- pre-validacao apresentou uma unica pendencia: `Login valido e disponivel`;
+- o login de teste exibido e `teste.provisionamento`, que ultrapassa o limite de 20 caracteres do `sAMAccountName` ja validado pelo projeto;
+- nenhuma escrita foi executada.
+
+Antes de ativar `PilotWrite`, fechar a pre-validacao com login de ate 20 caracteres e revisar o comportamento dos checkboxes de grupos, pois a tela mostra os grupos comuns selecionados mesmo com escrita de memberships desabilitada.
+
+## 24/09/2026 - V058 / pacote v0.1.1: sugestoes de grupos mantidas e escrita continua bloqueada
+
+A revisao do teste ReadOnly confirmou que a pre-validacao ficou integralmente verde com o login curto `teste.cadcolab`. A OU exibida no PDF era `05.Terceiros-Ext` por selecao acidental do operador; nao foi tratada como falha de regra de tela.
+
+Decisoes aplicadas no codigo da `v0.1.1`:
+
+- grupos comuns ao cargo continuam marcados automaticamente;
+- excecoes continuam desmarcadas;
+- protegidos continuam bloqueados;
+- `GroupWritesEnabled=false` passa a significar somente **sem escrita de memberships**, sem obrigar desmarcar as sugestoes;
+- o endpoint de criacao nao bloqueia mais apenas porque existem grupos comuns marcados;
+- o comando enviado ao servico de escrita continua com `GroupDns=[]`, portanto nenhuma membership e alterada;
+- a interface deixa explicito que as marcacoes sao somente sugestoes enquanto a escrita de grupos estiver desabilitada;
+- nao foi adicionado check temporario de `OU autorizada para escrita piloto`; a pre-validacao continua com `OU valida`;
+- a protecao real de OU permanece no backend: `WriteAllowedOuDns` segue contendo apenas `OU=07.Outros,OU=Automind,DC=automind,DC=com,DC=br`;
+- `Automind:Mode` continua `ReadOnly`;
+- `Microsoft365.Enabled=false`;
+- `proxyAddresses` e `pwdLastSet` continuam fora da escrita;
+- pacote completo passa a `CadColab-v0.1.1.zip`.
+
+Proximo gate: build local .NET 10 -> commit/push na branch `release` -> deploy Azure ainda `ReadOnly` -> repetir o teste com `07.Outros` selecionada. Somente depois disso preparar a ativacao real de `PilotWrite`.
+

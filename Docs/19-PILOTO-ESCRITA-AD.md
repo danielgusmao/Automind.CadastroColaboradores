@@ -135,11 +135,12 @@ O `appsettings.json` deste pacote contem:
 - `Automind:Provisioning:TechnicalIdentity=AUTOMIND\gMSA_CadColab$`;
 - `WriteAllowedOuDns` contendo **somente** `07.Outros`;
 - `GroupWritesEnabled=false`;
+- com `GroupWritesEnabled=false`, os grupos comuns ao cargo podem permanecer marcados na interface como sugestao; excecoes ficam desmarcadas e protegidos continuam bloqueados; essas marcacoes **nao** sao enviadas para escrita: o comando de criacao usa `GroupDns=[]`;
 - senha inicial com comprimento 14;
 - caminho do arquivo de auditoria;
 - `Microsoft365.Enabled=false`.
 
-A allowlist de escrita e independente da allowlist de leitura. Adicionar uma OU a `AllowedOuDns` nao autoriza escrita nela.
+A allowlist de escrita e independente da allowlist de leitura. Adicionar uma OU a `AllowedOuDns` nao autoriza escrita nela. A pre-validacao continua mostrando apenas `OU valida`; o backend de criacao revalida `WriteAllowedOuDns` e bloqueia qualquer OU fora de `07.Outros`, sem necessidade de um indicador temporario na tela.
 
 ## 6. Travas que permanecem antes do primeiro usuario
 

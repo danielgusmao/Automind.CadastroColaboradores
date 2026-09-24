@@ -211,7 +211,7 @@
             </div>
             @if (!groupWritesEnabled)
             {
-                <div class="topdesk-import-status is-warning group-write-warning">A sugestão de grupos continua disponível para revisão, mas o piloto não grava memberships. Para criar o usuário piloto, deixe todos os grupos desmarcados.</div>
+                <div class="topdesk-import-status is-warning group-write-warning">Os grupos comuns ao cargo permanecem marcados como sugestão e as exceções ficam desmarcadas. Enquanto GroupWritesEnabled=false, essas marcações são apenas informativas e nenhuma membership será gravada.</div>
             }
             <div class="topdesk-import-status" data-groups-status hidden></div>
         </section>
@@ -263,7 +263,7 @@
                 <div><dt>Telephone</dt><dd data-preview="telephoneNumber"></dd></div>
                 <div class="preview-wide"><dt>Manager DN</dt><dd data-preview="managerDistinguishedName"></dd></div>
                 <div class="preview-wide"><dt>OU DN</dt><dd data-preview="ouDistinguishedName"></dd></div>
-                <div class="preview-wide"><dt>Grupos selecionados</dt><dd data-preview="groups"></dd></div>
+                <div class="preview-wide"><dt>@(groupWritesEnabled ? "Grupos selecionados" : "Grupos sugeridos/selecionados (não escritos)")</dt><dd data-preview="groups"></dd></div>
             </dl>
         </section>
 

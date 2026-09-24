@@ -187,16 +187,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!createButton) return;
         const selectedOu = fieldValue('OuDistinguishedName');
         const scopeOk = writeEnabled && writeTargetOu && selectedOu.localeCompare(writeTargetOu, undefined, { sensitivity: 'accent' }) === 0;
-        const groupsOk = groupWritesEnabled || selectedGroupDns().length === 0;
-        createButton.disabled = !(lastValidationValid && scopeOk && groupsOk);
+        createButton.disabled = !(lastValidationValid && scopeOk);
 
         if (!lastValidationValid) return;
         if (!scopeOk) {
             setStatus(createStatus, 'A pré-validação passou, mas a OU selecionada não pertence ao escopo de escrita do piloto.', 'warning');
-        } else if (!groupsOk) {
-            setStatus(createStatus, 'A pré-validação passou, mas o piloto não grava grupos. Desmarque os grupos e valide novamente antes de criar.', 'warning');
         } else {
-            setStatus(createStatus, 'Pré-validação íntegra e escopo piloto confirmado. A criação permanece dependente do clique e da confirmação explícita.', 'success');
+            const groupNote = !groupWritesEnabled && selectedGroupDns().length > 0
+                ? ' Os grupos marcados permanecem somente como sugestão e não serão gravados.'
+                : '';
+            setStatus(createStatus, `Pré-validação íntegra e escopo piloto confirmado. A criação permanece dependente do clique e da confirmação explícita.${groupNote}`, 'success');
         }
     };
 

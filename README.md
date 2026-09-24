@@ -53,3 +53,10 @@ Branch atual: `release`.
 Nesta fase não há tag nem versionamento numérico. Fazer apenas commit e push para os remotes existentes `origin` (GitHub) e `azure` (Azure DevOps). O pipeline/release existente não deve ser alterado.
 
 Consulte `Docs/10-FLUXO-GIT-E-PUBLICACAO.md` e `Docs/CHECKPOINT.md`.
+
+## Pacote atual
+
+- Versao do pacote: `0.1.1`
+- Nome curto: `CadColab-v0.1.1.zip`
+- Estado: `ReadOnly`
+- Versionamento de pacote nao cria tag Git automaticamente.

@@ -6,8 +6,8 @@ Decisão aprovada em 22/09/2026.
 - Azure DevOps Repos: origem utilizada no processo de publicação existente.
 - Azure Pipeline + Release: já criados e testados pelo responsável do projeto.
 - Branch de trabalho/publicação atual: `release`.
-- Não haverá versionamento numérico nesta etapa.
-- Quando a branch `master` for criada/adotada, iniciar a política de versionamento do sistema.
+- Pacotes completos de atualização são versionados numericamente a partir de `0.1.0`.
+- O versionamento do pacote não cria tag Git automaticamente; a branch operacional continua `release`.
 - Alterações devem ser commitadas antes dos testes no servidor para evitar perda de trabalho.
 - Não alterar remotes, pipelines ou releases sem aprovação prévia.
 
@@ -70,3 +70,19 @@ git push azure release
 ### Cuidado com arquivos gerados
 
 Antes de `git add .`, revisar sempre `git status --short`. A pasta local `artifacts/` pode conter publishes/ZIPs gerados para teste e nao deve ser incluida inadvertidamente em um commit sem decisao explicita. O `.gitignore` atual ainda deve ser revisado especificamente para essa pasta antes de automatizar essa exclusao.
+
+## Nomes curtos e versao de pacote - 24/09/2026
+
+A partir desta rodada, a regra anterior de "sem versionamento numerico" fica substituida **para os pacotes de atualizacao**:
+
+- todo pacote completo deve usar nome curto: `CadColab-vX.Y.Z.zip`;
+- versao atual da linha piloto: `0.1.1`;
+- ajustes incrementais desta linha usam patch: `0.1.1`, `0.1.2`, `0.1.3` etc.;
+- mudanca funcional maior ainda dentro do piloto pode incrementar minor (`0.2.0`);
+- `VERSION.txt` na raiz registra a versao do pacote;
+- o projeto, solution, namespaces e nomes tecnicos existentes **nao devem ser renomeados** por causa desta regra;
+- nao criar Git tag automaticamente. O fluxo continua por commit na branch `release`, com push para `origin` e `azure`, salvo solicitacao explicita;
+- o historico detalhado de checkpoints foi consolidado em `Docs/CP-HIST.md` para reduzir caminhos longos no Windows;
+- o arquivo `Docs/CHECKPOINT.md` continua sendo o checkpoint corrente/resumido.
+
+Motivo: evitar falhas de extracao/copia por comprimento excessivo de caminho e manter cada atualizacao claramente identificada.

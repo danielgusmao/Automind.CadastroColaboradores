@@ -176,9 +176,6 @@ public sealed class ColaboradoresController(
             if (!adWriter.WriteAllowedOuDns.Contains(context.Ou.DistinguishedName ?? string.Empty))
                 return Json(CreateBlocked("A OU selecionada não pertence ao escopo de escrita do piloto."));
 
-            if ((request.SelectedGroupDns ?? []).Any(x => !string.IsNullOrWhiteSpace(x)))
-                return Json(CreateBlocked("A escrita de grupos ainda está bloqueada no piloto. Desmarque todos os grupos antes da criação."));
-
             var preview = context.Response.Preview;
             var command = new AdProvisioningWriteCommand
             {

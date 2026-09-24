@@ -114,3 +114,26 @@
 - Git e o mecanismo de historico/backup do codigo, mas nao substitui os baselines e rollbacks especificos de IIS/AD ja documentados;
 - checkpoint deve permanecer dentro do pacote completo enquanto estivermos preparando e testando esta release;
 - antes de `git add .`, conferir arquivos gerados, especialmente `artifacts/`, para evitar commit acidental de publish/ZIP local.
+
+## 24/09/2026 - nomes curtos e versionamento dos pacotes
+
+- iniciar versionamento numerico dos pacotes completos a partir de `0.1.0`;
+- formato oficial do ZIP: `CadColab-vX.Y.Z.zip`;
+- durante a linha piloto, ajustes normais incrementam o patch;
+- registrar a versao em `VERSION.txt` e no checkpoint;
+- a versao de pacote nao implica criacao de tag Git; tags continuam dependentes de solicitacao explicita;
+- reduzir nomes/caminhos internos de documentacao; checkpoints historicos foram consolidados em `Docs/CP-HIST.md`;
+- manter nomes tecnicos do projeto/solution/assemblies sem alteracao.
+
+## 24/09/2026 - comportamento das sugestoes de grupos no piloto v0.1.1
+
+- `GroupWritesEnabled=false` bloqueia **escrita de memberships**, mas nao deve apagar a utilidade visual da sugestao por cargo;
+- grupos comuns ao cargo continuam marcados automaticamente;
+- excecoes permanecem desmarcadas;
+- grupos protegidos permanecem bloqueados/desabilitados;
+- durante o piloto sem escrita de grupos, as marcacoes sao informativas: podem aparecer na pre-validacao e na previa, mas o comando de criacao envia `GroupDns=[]` e nao altera memberships;
+- a criacao do usuario piloto nao deve exigir que o operador desmarque os grupos comuns;
+- nao adicionar um indicador temporario de "OU autorizada para escrita piloto" na grade de pre-validacao; a tela continua exibindo `OU valida`;
+- a seguranca de escrita da OU continua obrigatoria no backend por `WriteAllowedOuDns`, atualmente restrita a `07.Outros`;
+- selecionar outra OU por engano pode passar a validacao de leitura, mas a criacao real deve continuar bloqueada pelo escopo de escrita do backend.
+
