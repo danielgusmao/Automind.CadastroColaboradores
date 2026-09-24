@@ -121,10 +121,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const passwordValue = form.querySelector('[data-password-value]');
     const ticketSource = document.querySelector('[data-ticket-source]');
     const ticketHidden = form.querySelector('[name="Chamado"]');
+    const loginInput = form.querySelector('[data-samaccountname]');
+    const loginCounter = form.querySelector('[data-login-counter]');
+    const loginLengthWarning = form.querySelector('[data-login-length-warning]');
+    const loginMaxLength = 20;
     let lastValidationValid = false;
 
     const fieldValue = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
     const checked = (name) => Boolean(form.querySelector(`[name="${name}"]`)?.checked);
+
+    const updateLoginLengthState = () => {
+        if (!loginInput) return;
+        const length = (loginInput.value || '').length;
+        const exceeded = length > loginMaxLength;
+        if (loginCounter) {
+            loginCounter.textContent = `${length} / ${loginMaxLength}`;
+            loginCounter.classList.toggle('is-over-limit', exceeded);
+            loginCounter.classList.toggle('is-at-limit', length === loginMaxLength);
+        }
+        if (loginLengthWarning) {
+            loginLengthWarning.hidden = !exceeded;
+            loginLengthWarning.textContent = exceeded
+                ? `O login possui ${length} caracteres e excede o limite do sAMAccountName em ${length - loginMaxLength}. Reduza para no máximo ${loginMaxLength} caracteres antes de validar.`
+                : '';
+        }
+        loginInput.classList.toggle('is-over-limit', exceeded);
+    };
+
+    loginInput?.addEventListener('input', updateLoginLengthState);
+    updateLoginLengthState();
 
     const escapeHtml = (value) => String(value ?? '')
         .replaceAll('&', '&amp;')

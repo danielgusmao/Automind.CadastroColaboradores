@@ -18,7 +18,7 @@ Integrações ativas:
 
 **Continua bloqueada nesta entrega.**
 
-O projeto não contém rotina ativa para `New-ADUser`, senha, inclusão em grupos ou alteração de objetos. A próxima fase só deve ser feita após autorização explícita e definição da identidade técnica de escrita.
+O projeto contém a rotina de provisionamento piloto preparada, mas `Automind:Mode=ReadOnly` mantém a criação de usuários desabilitada. Escrita de grupos, `proxyAddresses`, `pwdLastSet` e Microsoft 365 continuam fora desta etapa.
 
 ## Configuração principal
 
@@ -56,7 +56,7 @@ Consulte `Docs/10-FLUXO-GIT-E-PUBLICACAO.md` e `Docs/CHECKPOINT.md`.
 
 ## Pacote atual
 
-- Versao do pacote: `0.1.1`
-- Nome curto: `CadColab-v0.1.1.zip`
+- Versao do pacote: `0.1.2`
+- Nome curto: `CadColab-v0.1.2.zip`
 - Estado: `ReadOnly`
 - Versionamento de pacote nao cria tag Git automaticamente.

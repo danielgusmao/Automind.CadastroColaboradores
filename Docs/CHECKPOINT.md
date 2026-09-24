@@ -844,3 +844,19 @@ Decisoes aplicadas no codigo da `v0.1.1`:
 
 Proximo gate: build local .NET 10 -> commit/push na branch `release` -> deploy Azure ainda `ReadOnly` -> repetir o teste com `07.Outros` selecionada. Somente depois disso preparar a ativacao real de `PilotWrite`.
 
+
+
+## 24/09/2026 - V059 / pacote v0.1.2: limite de 20 caracteres do login visivel na tela
+
+A tela de Novo colaborador passa a tornar explicita a restricao do Active Directory para `sAMAccountName`:
+
+- limite maximo: 20 caracteres;
+- contador visual `N / 20`;
+- aviso em destaque quando um valor importado ultrapassar o limite;
+- `maxlength=20` para edicao manual;
+- backend continua validando o limite independentemente da interface;
+- nao truncar automaticamente valores importados: o operador deve decidir o login curto correto.
+
+Caso que motivou o ajuste: `teste.provisionamento` ultrapassou 20 caracteres e foi ajustado manualmente para `teste.cadcolab`.
+
+Nenhuma escrita AD foi habilitada; `Mode=ReadOnly` permanece.

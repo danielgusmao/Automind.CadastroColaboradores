@@ -53,3 +53,16 @@ Esperado:
 3. O formulario Novo colaborador e preenchido com os dados esperados.
 4. Telefone segue o padrao `(DD) 9 XXXX-XXXX`.
 5. Nenhuma escrita em AD ou TOPdesk ocorre.
+
+
+## Caso - login acima do limite do sAMAccountName
+
+Objetivo: validar a indicacao visual e a protecao backend para login com mais de 20 caracteres.
+
+Exemplo observado no piloto:
+
+- login importado: `teste.provisionamento`;
+- resultado esperado: contador acima de `20 / 20`, campo destacado e mensagem informando o excesso;
+- a pre-validacao deve reprovar `Login valido e disponivel`;
+- operador deve escolher conscientemente um login com no maximo 20 caracteres, sem truncamento automatico;
+- exemplo usado no teste: `teste.cadcolab`.

@@ -100,7 +100,15 @@
             <div class="field"><label>Nome completo</label><input name="NomeCompleto" value="@Model.NomeCompleto" /></div>
             <div class="field"><label>Nome de guerra <small>exatamente 2 nomes</small></label><input name="NomeGuerra" value="@Model.NomeGuerra" /></div>
             <div class="form-row-2">
-                <div class="field"><label>Login</label><input name="Login" value="@Model.Login" /></div>
+                <div class="field login-field" data-login-field>
+                    <label>Login <small>máx. 20 caracteres no AD</small></label>
+                    <input name="Login" value="@Model.Login" maxlength="20" data-samaccountname aria-describedby="loginLengthHelp loginLengthWarning" />
+                    <div class="field-help-row" id="loginLengthHelp">
+                        <span class="field-help">sAMAccountName do Active Directory: limite máximo de 20 caracteres.</span>
+                        <span class="field-counter" data-login-counter>0 / 20</span>
+                    </div>
+                    <div class="field-warning" id="loginLengthWarning" data-login-length-warning hidden></div>
+                </div>
                 <div class="field"><label>E-mail corporativo</label><input name="Email" value="@Model.Email" /></div>
             </div>
             <div class="form-row-2">
