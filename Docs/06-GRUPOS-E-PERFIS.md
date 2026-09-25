@@ -1,3 +1,9 @@
+# ESTADO VIGENTE - 24/09/2026
+
+`GroupWritesEnabled=true`, mas a escrita permanece estritamente limitada a `GroupWriteAllowedDns` (atualmente somente `_CriaMovePastas` em `07.Outros`). Sugestao, excecoes e busca manual continuam independentes da permissao de escrita. O teste negativo com `_Engenharia` confirmou que grupo fora da allowlist bloqueia a pre-validacao.
+
+---
+
 ## v0.1.10 - escrita de grupos integrada ao provisionamento
 
 A sugestão continua pesquisando cargo+departamento fora da OU piloto. A escrita é independente da sugestão: somente grupos em `Automind:Provisioning:GroupWriteAllowedDns` podem ser efetivamente gravados. No piloto atual a allowlist contém apenas `_CriaMovePastas` em `07.Outros`. Grupos comuns ao cargo continuam visíveis, mas devem ser desmarcados se não estiverem autorizados para escrita.

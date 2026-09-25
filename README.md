@@ -1,91 +1,84 @@
 # Automind.CadastroColaboradores
 
-ASP.NET Core MVC / .NET 10 para cadastro e pré-validação de colaboradores Automind.
+ASP.NET Core MVC / .NET 10 Windows para cadastro e provisionamento controlado de colaboradores Automind.
 
-## Estado da entrega
+## Estado atual - v0.1.12
 
-Integrações ativas:
+### Active Directory
 
-- login real no Active Directory;
-- autorização inicial pelo grupo AD configurado;
-- importação de chamado TOPdesk via Automind TOPdesk Bridge;
-- leitura real do Active Directory para OUs, usuários, superior imediato, identidade e grupos;
-- sugestão real de grupos por `Title + Department`;
-- pré-validação real de login, UPN, e-mail/SMTP, superior, OU e grupos;
-- prévia do objeto AD sem executar escrita.
+Piloto concluido ponta a ponta:
+- login/autorizacao AD;
+- importacao TOPdesk Bridge;
+- consultas reais de OU, identidade, manager e grupos;
+- sugestao por `Title + Department`;
+- comuns, excecoes, grupos manuais e bloqueio de protegidos;
+- criacao em `07.Outros`;
+- atributos, senha e manager;
+- membership limitada por `GroupWriteAllowedDns`;
+- readback, enable final e auditoria.
 
-## Escrita no AD
+### Microsoft 365 / Entra
 
-`Automind:Mode=PilotWrite` está ativo somente para criação de usuário na OU piloto `07.Outros`. Na v0.1.10, `GroupWritesEnabled=true` apenas para a allowlist de grupos de escrita, atualmente limitada a `_CriaMovePastas` em `07.Outros`. O fluxo de criação pode gravar a membership selecionada antes de habilitar a conta, com releitura, auditoria e rollback somente das memberships criadas pela operação. `proxyAddresses`, `pwdLastSet` e Microsoft 365 continuam fora desta etapa.
+Validado no tenant real:
+- App-only por certificado;
+- leitura de `subscribedSkus`;
+- leitura de usuarios/licencas;
+- `UsageLocation=BR` em usuario sincronizado;
+- atribuicao e remocao controlada de Microsoft 365 Business Standard em `lucas.costa`.
 
-## Configuração principal
+A v0.1.12 adiciona ao formulario `Novo colaborador` uma lista somente leitura das licencas do tenant no formato do Microsoft 365 Admin Center, por exemplo:
 
-`appsettings.json`:
+`Microsoft 365 Business Standard - 17 de 166 licencas disponiveis`
 
-- `Automind:Ad:Server` - controlador/endpoint AD usado nas consultas;
-- `Automind:Ad:BaseDn` - DN do domínio;
-- `Automind:Ad:PeopleSearchBase` - base para usuários/OUs;
-- `Automind:Ad:AllowedOuDns` - allowlist de OUs pelo DN completo;
-- `Automind:Ad:SuggestionExcludedOuDns` - OUs cujos usuários não entram na coorte de referência de grupos;
-- `Automind:Ad:ProtectedGroupNames` - nomes privilegiados que nunca são pré-selecionados;
-- `Automind:EmailDomain` - `automind.com.br`;
-- `Automind:PrimarySmtpDomain` - `automind.co`;
-- `Automind:JobTitleTranslations` - traduções de cargo aprovadas.
+Configuracao da entrega:
+- `Microsoft365.Enabled=true`;
+- `LicenseInventoryEnabled=true`;
+- `LicenseWritesEnabled=false`.
 
-Não inserir usuário/senha administrativa no arquivo de configuração.
+Nenhuma atribuicao/remocao de licenca foi integrada ao fluxo normal do CadColab nesta versao.
 
-## Fluxo validado
+## Seguranca
 
-1. Login AD.
-2. Criar/obter chamado TOPdesk.
-3. Importar pelo Bridge.
-4. Conferir dados e selecionar OU.
-5. Consultar grupos reais.
-6. Clicar em `Validar no AD`.
-7. Conferir a prévia.
-8. Em `PilotWrite`, a criação do usuário só pode ocorrer em `07.Outros`; memberships são gravadas somente para grupos explicitamente autorizados em `GroupWriteAllowedDns`.
+- sem client secret;
+- certificado privado permanece em `LocalMachine\My` no servidor;
+- gMSA possui somente leitura na chave privada;
+- nenhuma senha inicial e gravada em banco/log/historico;
+- `proxyAddresses` e `pwdLastSet` continuam fora da escrita;
+- M365 write permanece bloqueado no codigo/configuracao da v0.1.12.
 
-## Publicação
+## Build e publicacao
 
-Branch atual: `release`.
+Branch: `release`.
 
-Nesta fase não há tag Git automática. Os pacotes usam versão numérica curta; fazer commit e push para os remotes existentes `origin` (GitHub) e `azure` (Azure DevOps). O pipeline/release existente não deve ser alterado.
+Validacao local:
 
-Consulte `Docs/10-FLUXO-GIT-E-PUBLICACAO.md` e `Docs/CHECKPOINT.md`.
+```powershell
+git branch --show-current;dotnet build -c Release;git status --short
+```
 
-## Pacote atual
+Depois do build aprovado:
 
-- Versao do pacote: `0.1.10`
-- Nome curto: `CadColab-v0.1.10.zip`
-- Estado: `PilotWrite` em `07.Outros`; memberships integradas ao fluxo normal somente para grupos presentes em `GroupWriteAllowedDns` (atualmente apenas `_CriaMovePastas`)
-- Versionamento de pacote nao cria tag Git automaticamente.
+```powershell
+git add .;git commit -m "CadColab v0.1.12 - inventario Microsoft 365";git push origin release;git push azure release
+```
 
+Nao criar tag Git automaticamente.
 
-## Estado da linha piloto - v0.1.7
+## Teste da v0.1.12
 
-`Automind:Mode=PilotWrite` permanece ativo. A escrita de criação de usuário continua restrita a `07.Outros`; `GroupWritesEnabled=false`. A funcionalidade da v0.1.4 amplia a descoberta/seleção de grupos (comuns, exceções e busca manual), sem adicionar o usuário a grupos. Microsoft 365, Teams, `proxyAddresses` e `pwdLastSet` continuam bloqueados.
+Depois do deploy:
+1. abrir `Novo colaborador`;
+2. localizar `04 - MICROSOFT 365`;
+3. confirmar `Graph conectado`;
+4. comparar quantidades com o Microsoft 365 Admin Center;
+5. confirmar checkboxes desabilitados;
+6. validar que TOPdesk/AD continuam funcionando normalmente.
 
+## Documentacao
 
-## Documentacao cumulativa
-
-A v0.1.7 endurece a coorte de referência: além de excluir o próprio colaborador, usuários localizados em `SuggestionExcludedOuDns` (atualmente `07.Outros`) não participam da estatística de grupos. Isso impede que contas piloto/teste distorçam futuros cargos. O checkpoint principal e cumulativo, com as informacoes mais novas no topo. Documentos/checkpoints redundantes podem ser unificados e removidos somente depois que todo o conteudo for incorporado, sem perda de informacao. Consulte `Docs/CHECKPOINT.md` e `Docs/CONTEXTO-ATUAL.md`.
-
-## v0.1.8
-
-O projeto agora declara `net10.0-windows`, coerente com IIS + Active Directory. Isso elimina os avisos CA1416 sem suprimi-los artificialmente. A documentacao de checkpoint foi consolidada em `Docs/CHECKPOINT.md` (unico, cumulativo, mais novo primeiro).
-
-
-## v0.1.10
-
-- teste isolado de membership da v0.1.9 validado com sucesso no AD;
-- membership integrada ao fluxo normal de criação;
-- `GroupWritesEnabled=true` apenas para a allowlist `GroupWriteAllowedDns`;
-- allowlist piloto contém somente `_CriaMovePastas` em `07.Outros`;
-- grupos fora da allowlist bloqueiam a pré-validação;
-- memberships são gravadas antes do enable final e confirmadas por releitura;
-- em falha, rollback remove apenas memberships adicionadas pela própria operação;
-- painel isolado de membership desativado após validação do teste técnico.
-
-## v0.1.9
-
-Teste real de membership isolado. O painel `MEMBERSHIP PILOTO` grava somente `teste.cadcolab` em `_CriaMovePastas`, usando a identidade `AUTOMIND\gMSA_CadColab$`, com releitura, auditoria e tentativa de rollback da associacao criada se houver falha. O fluxo normal de criacao permanece com `GroupWritesEnabled=false`.
+- `Docs/CONTEXTO-ATUAL.md` - estado operacional atual;
+- `Docs/CHECKPOINT.md` - checkpoint cumulativo, mais novo primeiro;
+- `Docs/07-MICROSOFT-365.md` - identidade, testes, implementacao e rollback M365;
+- `Docs/16-CONTRATO-ESCRITA-AD.md` - contrato AD;
+- `Docs/17-ROLLBACK-AD.md` - rollback AD;
+- `Docs/20-POLITICA-DOCUMENTACAO-E-CONTINUIDADE.md` - politica documental.

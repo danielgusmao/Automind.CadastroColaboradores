@@ -1,3 +1,16 @@
+# ESTADO VIGENTE - 25/09/2026
+
+- fase AD do piloto concluida;
+- manter escrita de usuario restrita a `07.Outros`;
+- manter escrita de grupos restrita a `GroupWriteAllowedDns` (somente `_CriaMovePastas` no momento);
+- nao alterar exibicao da senha em PDF/impressao sem novo pedido;
+- Microsoft Graph App-only por certificado validado;
+- teste real de `UsageLocation=BR` + atribuicao/remocao de Business Standard concluido no usuario piloto;
+- v0.1.12 habilita somente o inventario visual M365; `LicenseWritesEnabled=false`;
+- nenhuma atribuicao/remocao M365 deve ser integrada ao fluxo normal sem nova etapa explicitamente aprovada.
+
+---
+
 # Decisões aprovadas
 
 1. Nenhuma modificação no AD sem apresentação prévia e aprovação explícita.
@@ -122,7 +135,7 @@
 - durante a linha piloto, ajustes normais incrementam o patch;
 - registrar a versao em `VERSION.txt` e no checkpoint;
 - a versao de pacote nao implica criacao de tag Git; tags continuam dependentes de solicitacao explicita;
-- reduzir nomes/caminhos internos de documentacao; checkpoints historicos foram consolidados em `Docs/CP-HIST.md`;
+- reduzir redundancia documental mantendo `Docs/CHECKPOINT.md` como checkpoint cumulativo unico;
 - manter nomes tecnicos do projeto/solution/assemblies sem alteracao.
 
 ## 24/09/2026 - comportamento das sugestoes de grupos no piloto v0.1.1
@@ -164,8 +177,23 @@
 
 - documentacao e checkpoint passam a ser requisito de integridade do pacote;
 - nenhum documento/checkpoint historico pode ser removido em versoes futuras sem autorizacao explicita;
-- `Docs/CP-HIST.md` e consolidacao adicional, nao substituto para `Docs/Checkpoints/`;
-- toda interacao relevante deve acrescentar informacao ao checkpoint/historico;
+- `Docs/CHECKPOINT.md` e o unico checkpoint cumulativo;
+- toda interacao relevante deve ser incorporada ao checkpoint ou ao documento tematico correspondente;
 - cada pacote deve ser compreensivel por outro humano/LLM sem acesso ao chat;
-- antes da entrega, comparar o inventario de documentos com a versao anterior e confirmar que nada foi perdido;
+- arquivos redundantes podem ser removidos somente depois da incorporacao integral do conteudo relevante;
 - nomes curtos continuam desejaveis para evitar problemas de caminho, mas nunca a custa de apagar conteudo historico.
+
+## 25/09/2026 - decisoes Microsoft 365 / v0.1.12
+
+- autenticacao M365 oficial do CadColab: App-only por certificado, sem client secret;
+- App Registration oficial: `Automind.CadColab`;
+- a gMSA do App Pool le a chave privada local; a chave nao deve ser exportada;
+- `UsageLocation=BR` foi validado em usuario sincronizado e sera requisito de uma futura atribuicao de licenca;
+- Microsoft 365 Business Standard foi atribuida/removida com sucesso somente no usuario piloto `lucas.costa`;
+- estado final do piloto: 0 licencas e `UsageLocation=BR`;
+- a v0.1.12 exibe o inventario real de licencas no formulario, mas nao permite selecionar/atribuir/remover licencas;
+- manter `LicenseWritesEnabled=false` ate uma etapa futura explicitamente aprovada;
+- falha do Graph nao pode impedir o uso do formulario AD/TOPdesk;
+- disponibilidade deve vir do Graph e nunca de numero fixo documentado;
+- o formato visual desejado segue o Admin Center: `<disponiveis> de <total> licencas disponiveis`;
+- rollback funcional da leitura M365 deve ser possivel apenas por configuracao, sem remover App Registration/certificado.

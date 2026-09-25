@@ -8,6 +8,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddDistributedMemoryCache();
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient("MicrosoftGraph", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -26,6 +31,7 @@ builder.Services.AddSingleton<IAdProvisioningWriteService, WindowsAdProvisioning
 builder.Services.AddSingleton<IAccessSuggestionService, WindowsAccessSuggestionService>();
 builder.Services.AddSingleton<IJobTitleTranslationService, ConfigurationJobTitleTranslationService>();
 builder.Services.AddSingleton<ITopdeskRequestParser, TopdeskRequestParser>();
+builder.Services.AddSingleton<IMicrosoft365LicenseService, Microsoft365LicenseService>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(options =>
 {

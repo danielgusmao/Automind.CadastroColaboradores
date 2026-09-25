@@ -15,6 +15,7 @@ public sealed class ColaboradoresController(
     IAccessSuggestionService access,
     ITopdeskRequestParser topdeskParser,
     IJobTitleTranslationService jobTitles,
+    IMicrosoft365LicenseService microsoft365,
     AdConnectionFactory directory,
     ILogger<ColaboradoresController> logger) : Controller
 {
@@ -370,6 +371,8 @@ public sealed class ColaboradoresController(
         ViewBag.PilotMembershipGroupDn = adWriter.PilotMembershipGroupDn;
         ViewBag.WriteAllowedOuDns = adWriter.WriteAllowedOuDns.ToArray();
         ViewBag.GroupWriteAllowedDns = adWriter.GroupWriteAllowedDns.ToArray();
+        ViewBag.Microsoft365Enabled = microsoft365.IsEnabled;
+        ViewBag.Microsoft365LicenseWritesEnabled = microsoft365.LicenseWritesEnabled;
 
         try
         {
@@ -385,6 +388,29 @@ public sealed class ColaboradoresController(
             logger.LogWarning("Falha ao listar OUs do AD. Tipo: {ErrorType}; código: {Code}", exception.GetType().Name, exception.HResult);
             ViewBag.Ous = Array.Empty<OrganizationalUnitOption>();
             ViewBag.AdReadError = "Não foi possível listar as OUs no Active Directory. Verifique a identidade do pool e a conectividade do servidor.";
+        }
+
+        if (!microsoft365.IsEnabled)
+        {
+            ViewBag.Microsoft365Licenses = Array.Empty<Microsoft365LicenseInfo>();
+            ViewBag.Microsoft365Error = null;
+            return;
+        }
+
+        try
+        {
+            ViewBag.Microsoft365Licenses = await microsoft365.GetSubscribedLicensesAsync(cancellationToken);
+            ViewBag.Microsoft365Error = null;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning("Falha ao consultar licenças do Microsoft 365. Tipo: {ErrorType}; código: {Code}", exception.GetType().Name, exception.HResult);
+            ViewBag.Microsoft365Licenses = Array.Empty<Microsoft365LicenseInfo>();
+            ViewBag.Microsoft365Error = "Não foi possível consultar as licenças no Microsoft 365. O restante do formulário continua disponível.";
         }
     }
 

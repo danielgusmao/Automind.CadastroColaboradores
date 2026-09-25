@@ -76,29 +76,29 @@ Antes de `git add .`, revisar sempre `git status --short`. A pasta local `artifa
 A partir desta rodada, a regra anterior de "sem versionamento numerico" fica substituida **para os pacotes de atualizacao**:
 
 - todo pacote completo deve usar nome curto: `CadColab-vX.Y.Z.zip`;
-- versao atual da linha piloto: `0.1.6`;
+- versao atual da linha piloto: `0.1.11`;
 - ajustes incrementais desta linha usam patch: `0.1.1`, `0.1.2`, `0.1.3`, `0.1.4` etc.;
 - mudanca funcional maior ainda dentro do piloto pode incrementar minor (`0.2.0`);
 - `VERSION.txt` na raiz registra a versao do pacote;
 - o projeto, solution, namespaces e nomes tecnicos existentes **nao devem ser renomeados** por causa desta regra;
 - nao criar Git tag automaticamente. O fluxo continua por commit na branch `release`, com push para `origin` e `azure`, salvo solicitacao explicita;
-- o historico detalhado de checkpoints foi consolidado em `Docs/CP-HIST.md` para reduzir caminhos longos no Windows;
-- o arquivo `Docs/CHECKPOINT.md` continua sendo o checkpoint corrente/resumido.
+- `Docs/CHECKPOINT.md` e o unico checkpoint cumulativo, com o mais novo no topo;
+- documentos tematicos evoluem no proprio arquivo, sem copias por versao.
 
 Motivo: evitar falhas de extracao/copia por comprimento excessivo de caminho e manter cada atualizacao claramente identificada.
 
-## Integridade documental obrigatoria - 24/09/2026
+## Integridade documental obrigatoria - regra vigente
 
 Antes de gerar/entregar qualquer novo `CadColab-vX.Y.Z.zip`:
 
 1. partir do pacote mais novo;
-2. preservar todos os arquivos de documentacao anteriores;
-3. atualizar `CHECKPOINT.md`, `CP-HIST.md` e o contexto atual;
-4. manter os checkpoints individuais em `Docs/Checkpoints/`;
-5. comparar o inventario de `Docs/` com a versao anterior;
-6. nao entregar o pacote se um documento anterior tiver desaparecido sem autorizacao explicita.
+2. atualizar `Docs/CHECKPOINT.md` e `Docs/CONTEXTO-ATUAL.md`;
+3. evoluir os documentos tematicos afetados;
+4. incorporar qualquer conteudo relevante antes de remover arquivo redundante;
+5. regenerar `Docs/DOC-MANIFEST-SHA256.txt`;
+6. garantir que outra LLM/humano consiga continuar sem o chat.
 
-A consolidacao historica existe para facilitar leitura; nunca mais deve ser usada para remover os arquivos historicos individuais.
+O requisito e preservar informacao, nao quantidade de arquivos.
 
 ## Atualizacao v0.1.8 - plataforma Windows explicita
 

@@ -13,6 +13,11 @@
     var pilotMembershipGroupDn = ViewBag.PilotMembershipGroupDn as string ?? string.Empty;
     var writeAllowedOuDns = ViewBag.WriteAllowedOuDns as IReadOnlyList<string> ?? [];
     var writeTargetOu = writeAllowedOuDns.FirstOrDefault() ?? string.Empty;
+    var microsoft365Enabled = ViewBag.Microsoft365Enabled is bool m365Enabled && m365Enabled;
+    var microsoft365LicenseWritesEnabled = ViewBag.Microsoft365LicenseWritesEnabled is bool m365Writes && m365Writes;
+    var microsoft365Licenses = ViewBag.Microsoft365Licenses as IReadOnlyList<Microsoft365LicenseInfo> ?? [];
+    var microsoft365Error = ViewBag.Microsoft365Error as string;
+    var microsoft365Healthy = microsoft365Enabled && string.IsNullOrWhiteSpace(microsoft365Error);
     var commonGroups = Model.GruposSugeridos.Where(g => !g.Protegido && g.TotalComparados > 0 && g.EncontradoEm == g.TotalComparados).ToList();
     var exceptionGroups = Model.GruposSugeridos.Where(g => !g.Protegido && (g.TotalComparados == 0 || g.EncontradoEm != g.TotalComparados)).ToList();
     var protectedGroups = Model.GruposSugeridos.Where(g => g.Protegido).ToList();
@@ -37,7 +42,7 @@
             @if (writeMode)
             {
                 <strong>Piloto de escrita ativo apenas no escopo autorizado.</strong>
-                <span>Criação permitida somente na OU piloto. Memberships podem ser gravadas apenas nos grupos da allowlist de escrita; proxyAddresses, pwdLastSet e Microsoft 365 permanecem bloqueados.</span>
+                <span>Criação permitida somente na OU piloto. Memberships podem ser gravadas apenas nos grupos da allowlist de escrita; o inventário Microsoft 365 é somente leitura e a escrita de licenças permanece bloqueada.</span>
             }
             else
             {
@@ -286,9 +291,87 @@
             <div class="topdesk-import-status" data-groups-status hidden></div>
         </section>
 
+
+        <section class="panel span-full license-panel">
+            <div class="license-heading">
+                <div>
+                    <span class="eyebrow">04 · MICROSOFT 365</span>
+                    <h2>Licenças disponíveis</h2>
+                    <p>Inventário consultado no Microsoft Graph. Esta versão apenas exibe as assinaturas e a quantidade disponível.</p>
+                </div>
+                <span class="status-pill @(microsoft365Healthy ? "status-pill-success" : (!string.IsNullOrWhiteSpace(microsoft365Error) ? "status-pill-danger" : string.Empty))">@(microsoft365Healthy ? "Graph conectado" : (!string.IsNullOrWhiteSpace(microsoft365Error) ? "Falha na consulta" : "Desativado"))</span>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(microsoft365Error))
+            {
+                <div class="topdesk-import-status is-error license-status">@microsoft365Error</div>
+            }
+            else if (!microsoft365Enabled)
+            {
+                <div class="empty-state license-empty">
+                    <span class="empty-state-icon">◎</span>
+                    <div><strong>Inventário Microsoft 365 desativado</strong><p>Ative a configuração somente quando a identidade App-only estiver pronta no servidor.</p></div>
+                </div>
+            }
+            else if (microsoft365Licenses.Count == 0)
+            {
+                <div class="empty-state license-empty">
+                    <span class="empty-state-icon">◎</span>
+                    <div><strong>Nenhuma licença retornada</strong><p>O Microsoft Graph respondeu sem SKUs para exibição.</p></div>
+                </div>
+            }
+            else
+            {
+                <div class="license-list">
+                    @foreach (var license in microsoft365Licenses)
+                    {
+                        <div class="license-row @(license.IsSuspended ? "is-suspended" : string.Empty)">
+                            <div class="license-selector">
+                                <input type="checkbox" disabled title="Seleção de licença ainda não habilitada nesta versão." />
+                            </div>
+                            <div class="license-copy">
+                                <strong>@license.DisplayName</strong>
+                                @if (license.IsSuspended)
+                                {
+                                    <span>Assinatura suspensa</span>
+                                }
+                                else if (license.IsUnlimited)
+                                {
+                                    <span>Licenças ilimitadas disponíveis</span>
+                                }
+                                else
+                                {
+                                    <span><b>@license.AvailableUnits</b> de @license.EnabledUnits licenças disponíveis</span>
+                                }
+                                <small>@license.SkuPartNumber</small>
+                            </div>
+                            <div class="license-state">
+                                @if (license.IsSuspended)
+                                {
+                                    <span class="status-pill status-pill-danger">Suspensa</span>
+                                }
+                                else if (!license.IsUnlimited && license.AvailableUnits == 0)
+                                {
+                                    <span class="status-pill status-pill-danger">Sem vagas</span>
+                                }
+                                else
+                                {
+                                    <span class="status-pill status-pill-success">Disponível</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+                @if (!microsoft365LicenseWritesEnabled)
+                {
+                    <div class="license-readonly-note">Seleção e atribuição permanecem desabilitadas nesta versão. A consulta usa apenas o inventário do tenant.</div>
+                }
+            }
+        </section>
+
         <section class="panel validation-panel span-full">
             <div class="validation-copy">
-                <span class="eyebrow">04 · PRÉ-VALIDAÇÃO</span>
+                <span class="eyebrow">05 · PRÉ-VALIDAÇÃO</span>
                 <h2>Validar no AD</h2>
                 <p>Revalida chamado, identidade, superior, OU e grupos diretamente no backend. Microsoft 365 não participa desta etapa.</p>
             </div>
@@ -312,7 +395,7 @@
 
         <section class="panel span-full ad-preview" data-ad-preview hidden>
             <div class="section-title-row">
-                <div class="section-number">05</div>
+                <div class="section-number">06</div>
                 <div><span class="eyebrow">PRÉVIA</span><h2>Objeto preparado para o AD</h2></div>
             </div>
             <p class="preview-warning"><strong>A prévia não executa escrita.</strong> proxyAddresses e pwdLastSet permanecem fora do contrato do piloto.</p>
@@ -341,7 +424,7 @@
         {
             <section class="panel span-full pilot-write-panel" data-pilot-write>
                 <div class="section-title-row">
-                    <div class="section-number">06</div>
+                    <div class="section-number">07</div>
                     <div><span class="eyebrow">PILOTO CONTROLADO</span><h2>Criar usuário no AD</h2></div>
                 </div>
                 <div class="pilot-scope">
@@ -364,7 +447,7 @@
             {
                 <section class="panel span-full pilot-write-panel" data-pilot-membership>
                     <div class="section-title-row">
-                        <div class="section-number">07</div>
+                        <div class="section-number">08</div>
                         <div><span class="eyebrow">MEMBERSHIP PILOTO</span><h2>Adicionar usuário existente ao grupo autorizado</h2></div>
                     </div>
                     <p><strong>Usuário:</strong> <code>@pilotMembershipUserDn</code></p>

@@ -1,33 +1,31 @@
-# LEIA PRIMEIRO - continuidade integral do CadColab
+# LEIA PRIMEIRO - continuidade do CadColab
 
-Este pacote foi preparado para permitir continuidade por outra pessoa ou LLM sem depender do chat original.
+Este pacote e autossuficiente para continuidade por humano ou LLM.
 
-## Regra primordial de documentacao
+## Ordem de leitura
 
-A documentacao do projeto e cumulativa.
+1. `Docs/CONTEXTO-ATUAL.md` - estado operacional e proximo teste.
+2. `Docs/CHECKPOINT.md` - historico cumulativo, mais novo primeiro.
+3. `Docs/07-MICROSOFT-365.md` - identidade Graph, testes reais e rollback.
+4. `Docs/03-DECISOES.md` - decisoes tecnicas e operacionais.
+5. `Docs/16-CONTRATO-ESCRITA-AD.md` - contrato vigente de escrita no AD.
+6. `Docs/17-ROLLBACK-AD.md` - rollback AD.
+7. `Docs/10-FLUXO-GIT-E-PUBLICACAO.md` - build, Git e deploy.
 
-- Nunca remover checkpoints, decisoes, resultados de testes ou documentos anteriores ao gerar nova versao.
-- Nunca substituir o historico detalhado por um resumo menor.
-- Resumos e consolidacoes podem ser adicionados, mas nunca usados para apagar os arquivos historicos originais.
-- Toda interacao relevante deve atualizar o checkpoint corrente e, quando aplicavel, o historico detalhado.
-- Antes de entregar novo ZIP, comparar com o pacote anterior e confirmar que nenhum documento anterior desapareceu.
-- O pacote completo deve ser autossuficiente para humanos e LLMs: estado atual, historico, regras, arquitetura, testes, resultados, seguranca, Git/release, pendencias e proximos passos.
+## Regra documental
 
-## Onde ler
+- `Docs/CHECKPOINT.md` e o unico checkpoint cumulativo.
+- documentos tematicos evoluem no proprio arquivo; nao criar copias por versao;
+- consolidar/remover redundancia somente depois de incorporar todo o conteudo relevante;
+- preservar informacao, nao quantidade de arquivos;
+- informacoes mais novas prevalecem quando uma secao historica descrever estado antigo.
 
-1. `Docs/CONTEXTO-ATUAL.md` - estado operacional mais recente e proximos passos.
-2. `Docs/CHECKPOINT.md` - checkpoint corrente acumulado.
-3. `Docs/CP-HIST.md` - historico consolidado dos checkpoints.
-4. `Docs/Checkpoints/` - arquivos individuais dos checkpoints historicos; preservados novamente a partir desta versao.
-5. `Docs/21-REGISTRO-INTERACOES-24-09-2026.md` - registro das interacoes e correcoes recentes que levaram ao estado atual.
-6. `Docs/03-DECISOES.md` - decisoes tecnicas e operacionais.
-7. `Docs/17-ROLLBACK-AD.md` - regras e procedimentos de rollback.
-8. `Docs/10-FLUXO-GIT-E-PUBLICACAO.md` - fluxo de versao, Git e publicacao.
+## Estado resumido - v0.1.12
 
-## Fonte historica restaurada
+- fase Active Directory do piloto concluida;
+- Microsoft Graph App-only por certificado validado;
+- `lucas.costa` recebeu e teve removida Microsoft 365 Business Standard com sucesso; estado final: 0 licencas, `UsageLocation=BR`;
+- tela `Novo colaborador` passa a exibir inventario real de licencas/quantidades;
+- `LicenseWritesEnabled=false`: nenhuma escrita M365 integrada ao sistema nesta versao.
 
-O pacote `Automind.CadastroColaboradores-23-09-2026-checkpoint-v0.0.50.zip` continha arquivos individuais de checkpoint ate V054, apesar do nome externo do ZIP. Esses arquivos foram restaurados em `Docs/Checkpoints/`.
-
-Depois de V054 existiram checkpoints mais novos: V055, V056, V057, V058, V059, V060 e V061. Eles foram preservados no historico consolidado e agora tambem existem como arquivos individuais.
-
-A partir desta versao, a documentacao nunca mais deve diminuir.
+Proximo gate: build/deploy da v0.1.12 e validacao visual do inventario M365 no servidor `10.1.2.21`.

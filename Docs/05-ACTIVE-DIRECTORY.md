@@ -1,3 +1,11 @@
+# ESTADO VIGENTE - 24/09/2026
+
+A fase Active Directory do piloto foi concluida com sucesso na v0.1.10. A aplicacao cria usuarios em `07.Outros`, grava atributos/senha/manager, adiciona memberships apenas em `GroupWriteAllowedDns`, confirma por readback, habilita por ultimo e audita o fluxo. O teste `I2609-0305` confirmou `lucas.costa` com `_CriaMovePastas`. O teste negativo com `_Engenharia` confirmou o bloqueio da allowlist.
+
+As secoes historicas abaixo registram a evolucao do desenho; quando disserem que escrita ainda era futura/proibida, tratam-se de estados antigos.
+
+---
+
 # Active Directory
 
 ## Estado atual - leitura real habilitada
@@ -186,7 +194,7 @@ Regras obrigatorias:
 
 O rollback deve preferir a remocao das ACEs/associacoes criadas pelo projeto, em vez da restauracao integral e cega de ACLs.
 
-A especificacao completa esta em `Docs/CP-HIST.md`
+A especificacao completa e o historico estao em `Docs/CHECKPOINT.md` e `Docs/16-CONTRATO-ESCRITA-AD.md`
 
 ## Baseline de seguranca antes da identidade tecnica - 23/09/2026
 

@@ -1,3 +1,9 @@
+# ESTADO VIGENTE - PILOTO AD CONCLUIDO EM 24/09/2026
+
+O objetivo deste documento foi atingido. A v0.1.10 concluiu o teste ponta a ponta com `I2609-0305` e `lucas.costa`, incluindo membership em `_CriaMovePastas`, readback, enable e auditoria. O teste negativo de allowlist tambem passou. Nao ampliar para grupos/OUs de producao sem nova aprovacao.
+
+---
+
 ## v0.1.10 - transição do teste isolado para o fluxo completo
 
 O teste real da v0.1.9 foi confirmado no AD e encerrou a necessidade do painel isolado. A v0.1.10 integra membership ao provisionamento normal, ainda com allowlist de escrita restrita a `_CriaMovePastas` em `07.Outros`.

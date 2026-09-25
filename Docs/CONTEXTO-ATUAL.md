@@ -1,90 +1,96 @@
 # CadColab - contexto atual para continuidade
 
-Versao em preparacao: `0.1.10`  
-Data: 24/09/2026  
+Versao: `0.1.12`  
+Data: 25/09/2026  
 Projeto: `Automind.CadastroColaboradores`
 
-## Estado operacional atual
+## Estado operacional
 
-- ultimo build confirmado pelo responsavel: v0.1.8/v0.1.9 base em `net10.0-windows`, 0 erros e 0 warnings;
 - `Automind:Mode=PilotWrite`;
-- criacao real de usuario limitada a `OU=07.Outros,OU=Automind,DC=automind,DC=com,DC=br`;
+- target `net10.0-windows`;
 - App Pool `CadastroColaboradores` executa como `AUTOMIND\gMSA_CadColab$`;
-- usuario piloto existente `teste.cadcolab` foi criado pelo CadColab e permanece em `07.Outros`;
-- sugestao/seleção de grupos validada: 8 comuns 5/5, 4 excecoes, busca manual e bloqueio de grupo protegido;
-- coorte de sugestao exclui `07.Outros` para contas piloto nao distorcerem as frequencias;
-- teste real de membership concluido com sucesso: `teste.cadcolab` entrou em `_CriaMovePastas` pela propria aplicacao;
-- ADUC confirmou a membership tanto em `Members` do grupo quanto em `Member Of` do usuario;
-- ACE `WriteProperty(member)` para `SG_CadastroColaboradores_AD_Writer` no grupo `_CriaMovePastas` esta funcional;
-- v0.1.10 evolui para `GroupWritesEnabled=true`, mas somente para `GroupWriteAllowedDns`;
-- allowlist de grupos atual: somente `CN=_CriaMovePastas,OU=07.Outros,OU=Automind,DC=automind,DC=com,DC=br`;
-- grupos fora dessa allowlist podem continuar aparecendo como sugestao, mas bloqueiam a pre-validacao se permanecerem selecionados para escrita;
-- Microsoft 365, Teams, `proxyAddresses` e `pwdLastSet` continuam fora da escrita.
+- criacao real limitada a `OU=07.Outros,OU=Automind,DC=automind,DC=com,DC=br`;
+- `GroupWritesEnabled=true`;
+- `GroupWriteAllowedDns` contem somente `_CriaMovePastas` em `07.Outros`;
+- `Microsoft365.Enabled=true`;
+- `Microsoft365.LicenseInventoryEnabled=true`;
+- `Microsoft365.LicenseWritesEnabled=false`;
+- Teams, `proxyAddresses` e `pwdLastSet` continuam sem escrita.
 
-## Fluxo de escrita v0.1.10
+## Active Directory - piloto concluido
 
-1. operador autorizado confirma a operacao;
-2. backend repete toda pre-validacao;
-3. exige OU na allowlist de escrita;
-4. exige cada grupo selecionado na `GroupWriteAllowedDns`;
-5. exige identidade tecnica `AUTOMIND\gMSA_CadColab$`;
-6. inicia auditoria antes da primeira escrita;
-7. cria usuario desabilitado;
-8. grava atributos;
-9. define senha;
-10. grava manager;
-11. adiciona memberships autorizadas no atributo `member` dos grupos;
-12. releitura confirma memberships;
-13. releitura confirma usuario ainda desabilitado e atributos;
-14. habilita a conta por ultimo;
-15. releitura final e auditoria de conclusao.
+Teste completo `I2609-0305`:
+- `lucas.costa` criado em `07.Outros`;
+- atributos, senha, UPN/mail, manager e enable validados;
+- membership direta `_CriaMovePastas` validada;
+- auditoria completa ate `provisioning-complete`;
+- teste negativo com `_Engenharia` fora da allowlist bloqueou a escrita.
 
-Em falha depois de inclusoes de grupo, o rollback remove somente memberships efetivamente adicionadas pela operacao atual e depois tenta manter a conta desabilitada. Nao existe exclusao automatica de usuario.
+Nao ampliar OU/grupos de producao sem nova decisao explicita.
 
-## Regra de sugestao de grupos
+## Microsoft 365 / Entra / Graph - validado
 
-1. pesquisar usuarios ativos por `Title + Department` no escopo de leitura;
-2. excluir OUs configuradas em `SuggestionExcludedOuDns` (atualmente `07.Outros`) da coorte;
-3. excluir o proprio colaborador por login/CN quando aplicavel;
-4. 100% da coorte -> `Comum ao cargo`;
-5. parcial -> `Excecao`;
-6. `Outros grupos` permite pesquisa manual no AD;
-7. grupos protegidos nao podem ser selecionados;
-8. efeitos indiretos continuam visiveis.
+App Registration:
+- nome `Automind.CadColab`;
+- tenant `9ab05ca8-1779-410b-ae61-82dbd20810f3`;
+- client ID `3558d29a-1098-467c-b4e3-aeaf0afeaaf4`;
+- certificado `CN=Automind.CadColab.Graph`;
+- thumbprint `A38B594A4A2594A3D83B33B52FD7828935700C29`;
+- validade ate 24/09/2028;
+- chave privada nao exportavel no servidor e legivel pela gMSA.
 
-## Regras operacionais
+Permissoes Application com Admin Consent:
+- `LicenseAssignment.Read.All`;
+- `User.Read.All`;
+- `User.ReadUpdate.All`;
+- `LicenseAssignment.ReadWrite.All`.
 
-- testes somente leitura/simulacao no mesmo local podem ser agrupados em uma linha PowerShell;
-- alteracao real: uma por vez;
-- antes da escrita real: comando, efeito, rollback e validacao;
-- sempre indicar local de execucao;
-- nao usar `iisreset`;
-- nao reiniciar AD/DC/KDC/Netlogon/servidor por causa do projeto;
-- nao restaurar ACL inteira cegamente;
-- nao excluir usuario de teste sem autorizacao separada;
-- `_informatica` e autorizacao humana, nao identidade tecnica;
-- CriaMovePastas e sistema legado separado; apenas o objeto grupo `_CriaMovePastas` foi autorizado como alvo de teste.
+### Teste real de licenca concluido
 
-## Documentacao
+Usuario piloto `lucas.costa@automind.com.br`:
+- `UsageLocation` alterado de vazio para `BR`;
+- Microsoft 365 Business Standard atribuida diretamente;
+- readback confirmou `Active`, sem erro e sem grupo de origem;
+- licenca removida em seguida;
+- estado final: `UsageLocation=BR`, 0 licencas;
+- tenant voltou a 149 Business Standard consumidas / 17 disponiveis.
 
-- `Docs/CHECKPOINT.md` e o checkpoint historico cumulativo, mais novo primeiro;
-- nao criar checkpoint por versao;
-- documentos tematicos sao evoluidos no mesmo arquivo;
-- consolidar/remover redundancia somente depois de incorporar integralmente o conteudo;
-- nunca reduzir informacao documental.
+## Implementacao v0.1.12
 
-## Proximo gate
+A tela `Novo colaborador` passa a mostrar uma secao Microsoft 365 somente leitura com:
+- nome amigavel da licenca;
+- SKU tecnico;
+- quantidade disponivel e total no formato `17 de 166 licencas disponiveis`;
+- status `Disponivel`, `Sem vagas` ou `Suspensa`;
+- capacidade equivalente a ilimitada apresentada como ilimitada.
 
-1. build da v0.1.10;
-2. publicar pela branch `release`;
-3. usar um novo usuario de teste com CN/login/UPN livres em `07.Outros`;
-4. deixar desmarcados grupos comuns fora da allowlist;
-5. adicionar manualmente `_CriaMovePastas`;
-6. pre-validar;
-7. criar o usuario;
-8. confirmar atributos, conta habilitada, membership e auditoria;
-9. manter grupos de producao fora da allowlist nesta fase.
+A fonte e `GET /v1.0/subscribedSkus` via App-only/certificado. Cache: 5 minutos.
 
-## Historico
+**Nao existe atribuicao/remocao de licenca no codigo da v0.1.12.** Os checkboxes aparecem desabilitados e `LicenseWritesEnabled=false`.
 
-Todo o historico de decisoes, comandos, resultados, rollbacks, versoes e investigacoes permanece em `Docs/CHECKPOINT.md`.
+## Proximo teste
+
+Depois do build/deploy da v0.1.12 no servidor `10.1.2.21`:
+1. abrir `Novo colaborador`;
+2. confirmar secao `04 - MICROSOFT 365`;
+3. confirmar `Graph conectado`;
+4. conferir os numeros com o Microsoft 365 Admin Center;
+5. confirmar que os checkboxes estao desabilitados;
+6. confirmar que importacao TOPdesk e fluxo AD continuam normais.
+
+## Rollback rapido da v0.1.12
+
+Definir um destes valores e publicar:
+- `Automind:Microsoft365:Enabled=false`; ou
+- `Automind:Microsoft365:LicenseInventoryEnabled=false`.
+
+Rollback completo do Entra/certificado/ACE: `Docs/07-MICROSOFT-365.md`.
+
+## Regras permanentes
+
+- `Docs/CHECKPOINT.md` e o unico checkpoint cumulativo, mais novo primeiro;
+- documentos tematicos evoluem no proprio arquivo;
+- cada alteracao real deve ser feita uma por vez, com efeito, rollback e validacao;
+- nao usar `iisreset` nem reiniciar DC/AD/servidor;
+- nao alterar comportamento de exibicao da senha em PDF/impressao sem novo pedido;
+- `proxyAddresses` continua fora da escrita do aplicativo.

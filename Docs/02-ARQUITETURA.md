@@ -3,10 +3,10 @@
 - ASP.NET Core MVC
 - .NET 10
 - IIS Windows
-- Servidor futuro: `10.1.2.21`
+- Servidor: `10.1.2.21`
 - HTTP interno inicialmente (sem HTTPS/certificado nesta fase)
 - SQL Server: **não instalar agora**; primeiro verificar infraestrutura corporativa existente.
-- Integrações futuras: TOPdesk REST API, Active Directory, Microsoft Graph e Teams.
+- Integracoes: TOPdesk Bridge/REST, Active Directory e Microsoft Graph; Teams permanece futura.
 
 ## Arquitetura de identidade técnica para escrita no AD - aprovada em 23/09/2026
 
@@ -86,3 +86,22 @@ A arquitetura passa a separar explicitamente:
 - `AdConnectionFactory`: configuracao, allowlists de leitura/escrita e conexoes LDAP.
 
 A camada de escrita possui dupla trava de escopo (`Mode=PilotWrite` + `WriteAllowedOuDns`) e confirma a gMSA real do processo. No pacote desta etapa, `Mode=ReadOnly`, portanto a camada existe mas nao esta ativada.
+
+## 25/09/2026 - arquitetura Microsoft Graph da v0.1.12
+
+A camada M365 passa a usar:
+- `IMicrosoft365LicenseService`: contrato de leitura do inventario;
+- `Microsoft365LicenseService`: OAuth App-only + certificado e chamada HTTP ao Microsoft Graph;
+- certificado localizado por thumbprint em `LocalMachine\My`;
+- nenhuma chave/segredo em `appsettings.json`;
+- `IHttpClientFactory` com cliente `MicrosoftGraph` e timeout de 15 segundos;
+- cache em memoria de 5 minutos para `subscribedSkus`;
+- falha do Graph isolada da carga do formulario/AD.
+
+Fluxo da v0.1.12:
+
+`IIS/gMSA -> certificado local -> Entra token endpoint -> Graph /subscribedSkus -> ViewBag -> Novo.cshtml`
+
+O Graph usa validacao TLS padrao do Windows/.NET. Nao existe `ServerCertificateValidationCallback` permissivo no codigo.
+
+`LicenseWritesEnabled=false` e nao ha endpoint de escrita M365 nesta versao, mesmo que as permissoes de escrita ja tenham sido validadas no tenant.

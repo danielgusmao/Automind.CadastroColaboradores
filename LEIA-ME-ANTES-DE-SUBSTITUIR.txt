@@ -1,31 +1,56 @@
-PACOTE DE LAYOUT AUTOMIND - V1
+CADCOLAB v0.1.12 - PACOTE COMPLETO
 
-Substituir SOMENTE estes arquivos/pastas no projeto atual:
+Objetivo desta atualizacao:
+- exibir no formulario Novo colaborador a lista real de licencas Microsoft 365;
+- mostrar quantidade no formato do Admin Center, ex.: 17 de 166 licencas disponiveis;
+- manter atribuicao/remocao de licencas bloqueada no sistema.
 
-Views/Shared/_Layout.cshtml
-Views/Home/Index.cshtml
-Views/Account/Login.cshtml
-Views/Colaboradores/Novo.cshtml
-wwwroot/css/automind.css
-wwwroot/js/site.js
-wwwroot/images/automind-wallpaper.jpg
-wwwroot/images/automind-logo-negative.png
-wwwroot/images/automind-logo-positive.png
-wwwroot/images/automind-symbol.png
-Docs/10-FLUXO-GIT-E-PUBLICACAO.md
-Docs/11-IDENTIDADE-VISUAL.md
+ARQUIVOS NOVOS PRINCIPAIS
+- Models\Microsoft365LicenseModels.cs
+- Services\IMicrosoft365LicenseService.cs
+- Services\Microsoft365LicenseService.cs
 
-Este pacote NAO altera:
-- Controllers
-- Models
-- Services
+ARQUIVOS ALTERADOS PRINCIPAIS
 - Program.cs
+- Controllers\ColaboradoresController.cs
+- Views\Colaboradores\Novo.cshtml
+- wwwroot\css\automind.css
 - appsettings.json
-- AD
-- TOPdesk
-- Microsoft 365
-- Teams
-- pipeline/release
+- VERSION.txt
+- Automind.CadastroColaboradores.csproj
+- Docs\CHECKPOINT.md
+- Docs\CONTEXTO-ATUAL.md
+- Docs\07-MICROSOFT-365.md
 
-O botao de busca do TOPdesk continua usando a action de desenvolvimento ExemploTopdesk ja existente.
-A integracao TOPdesk real sera feita em etapa separada.
+PRE-REQUISITO DO SERVIDOR 10.1.2.21
+O certificado ja validado precisa permanecer em LocalMachine\My:
+Thumbprint: A38B594A4A2594A3D83B33B52FD7828935700C29
+A gMSA AUTOMIND\gMSA_CadColab$ precisa continuar com leitura na chave privada.
+
+SEGURANCA DESTA VERSAO
+- Microsoft365.Enabled=true
+- LicenseInventoryEnabled=true
+- LicenseWritesEnabled=false
+- nenhum client secret
+- nenhum endpoint de escrita de licenca implementado
+
+VALIDACAO LOCAL ANTES DO PUSH
+Na maquina do Visual Studio:
+git branch --show-current;dotnet build -c Release;git status --short
+
+Esperado: branch release e build sem erros/warnings.
+
+PUBLICACAO APOS BUILD APROVADO
+git add .;git commit -m "CadColab v0.1.12 - inventario Microsoft 365";git push origin release;git push azure release
+
+TESTE APOS DEPLOY
+1. Abrir Novo colaborador.
+2. Confirmar secao 04 - MICROSOFT 365.
+3. Confirmar Graph conectado.
+4. Comparar quantidades com o Admin Center.
+5. Confirmar checkboxes de licenca desabilitados.
+6. Confirmar fluxo TOPdesk/AD normal.
+
+ROLLBACK FUNCIONAL
+Alterar Automind:Microsoft365:Enabled=false (ou LicenseInventoryEnabled=false) e publicar.
+Rollback completo do Graph/Entra/certificado: Docs\07-MICROSOFT-365.md.

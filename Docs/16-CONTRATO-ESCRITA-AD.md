@@ -1,3 +1,9 @@
+# ESTADO VIGENTE - 24/09/2026
+
+Contrato validado ponta a ponta na v0.1.10: `PilotWrite` somente em `07.Outros`; membership somente em `GroupWriteAllowedDns`; `_CriaMovePastas` e o unico grupo atualmente autorizado. `lucas.costa` foi criado pelo fluxo completo com membership, readback, enable final e auditoria. Grupo fora da allowlist bloqueia a pre-validacao.
+
+---
+
 ## v0.1.10 - contrato de membership no fluxo normal
 
 `GroupWritesEnabled=true` não libera grupos arbitrários. O backend exige que cada DN selecionado exista, não seja protegido e esteja na `GroupWriteAllowedDns`. A membership é escrita no atributo `member` do objeto grupo antes do enable final. A releitura é obrigatória.
