@@ -1,3 +1,9 @@
+# Atualizacao 25/09/2026 - v0.1.14
+
+Versao preparada para corrigir traducao de cargo, tratamento de sessao expirada no M365 e ativar o Historico operacional com recuperacao de licenciamento para usuarios ja criados. Caso inicial: `I2609-0317` / Safira.
+
+---
+
 # LEIA PRIMEIRO - continuidade do CadColab
 
 Este pacote e autossuficiente para continuidade por humano ou LLM.

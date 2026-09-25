@@ -1,3 +1,9 @@
+# Complemento 25/09/2026 - Historico sem banco na v0.1.14
+
+O menu `Historico` passa a ser funcional sem instalar banco de dados: le o arquivo `ProvisioningAudit.jsonl` ja usado pelo provisionamento e consulta o Microsoft Graph para o estado atual de licencas. Persistencia SQL continua adiada ate decisao explicita de infraestrutura.
+
+---
+
 # Banco de dados
 
 SQL Server ainda não definido.

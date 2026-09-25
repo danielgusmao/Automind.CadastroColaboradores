@@ -118,6 +118,86 @@ public sealed class Microsoft365LicenseService(
         };
     }
 
+    public async Task<IReadOnlyDictionary<string, Microsoft365UserLicenseStatus>> GetUserLicenseStatusesAsync(
+        IEnumerable<string> userPrincipalNames,
+        CancellationToken cancellationToken = default)
+    {
+        var upns = (userPrincipalNames ?? [])
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        var result = new Dictionary<string, Microsoft365UserLicenseStatus>(StringComparer.OrdinalIgnoreCase);
+        if (upns.Length == 0) return result;
+
+        if (!IsEnabled)
+        {
+            foreach (var upn in upns)
+                result[upn] = new Microsoft365UserLicenseStatus { UserPrincipalName = upn, ErrorMessage = "Integração Microsoft 365 desativada." };
+            return result;
+        }
+
+        var inventory = await GetSubscribedLicensesCoreAsync(forceRefresh: false, cancellationToken);
+        var byId = inventory.Where(x => x.SkuId != Guid.Empty).ToDictionary(x => x.SkuId);
+        var client = httpClientFactory.CreateClient("MicrosoftGraph");
+        var token = await AcquireAccessTokenAsync(client, cancellationToken);
+
+        foreach (var upn in upns)
+        {
+            try
+            {
+                var user = await ReadUserAsync(client, token, upn, cancellationToken);
+                if (user is null)
+                {
+                    result[upn] = new Microsoft365UserLicenseStatus
+                    {
+                        UserPrincipalName = upn,
+                        Exists = false
+                    };
+                    continue;
+                }
+
+                var assigned = user.AssignedSkuIds
+                    .Select(id =>
+                    {
+                        byId.TryGetValue(id, out var inventoryItem);
+                        var state = user.LicenseStates.FirstOrDefault(x => x.SkuId == id);
+                        return new Microsoft365AssignedLicenseInfo
+                        {
+                            SkuId = id,
+                            DisplayName = inventoryItem?.DisplayName ?? id.ToString(),
+                            SkuPartNumber = inventoryItem?.SkuPartNumber ?? string.Empty,
+                            State = state?.State,
+                            Error = state?.Error
+                        };
+                    })
+                    .OrderBy(x => x.DisplayName, StringComparer.CurrentCultureIgnoreCase)
+                    .ToList();
+
+                result[upn] = new Microsoft365UserLicenseStatus
+                {
+                    UserPrincipalName = upn,
+                    Exists = true,
+                    UsageLocation = user.UsageLocation,
+                    OnPremisesSyncEnabled = user.OnPremisesSyncEnabled,
+                    AssignedLicenses = assigned
+                };
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                logger.LogWarning("Falha ao consultar status M365 de {UserPrincipalName}. Tipo: {ErrorType}; codigo: {Code}", upn, exception.GetType().Name, exception.HResult);
+                result[upn] = new Microsoft365UserLicenseStatus
+                {
+                    UserPrincipalName = upn,
+                    ErrorMessage = "Não foi possível consultar o Microsoft 365."
+                };
+            }
+        }
+
+        return result;
+    }
+
     public async Task<Microsoft365LicenseAssignmentResponse> AssignLicensesAsync(
         string chamado,
         string operatorName,

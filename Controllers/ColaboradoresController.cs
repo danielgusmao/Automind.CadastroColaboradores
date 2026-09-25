@@ -16,6 +16,7 @@ public sealed class ColaboradoresController(
     ITopdeskRequestParser topdeskParser,
     IJobTitleTranslationService jobTitles,
     IMicrosoft365LicenseService microsoft365,
+    IProvisioningAuditService audit,
     AdConnectionFactory directory,
     ILogger<ColaboradoresController> logger) : Controller
 {
@@ -220,7 +221,25 @@ public sealed class ColaboradoresController(
                 GroupDns = context.RequestedGroups.ToList()
             };
 
-            return Json(await adWriter.CreateUserAsync(command, cancellationToken));
+            var createResult = await adWriter.CreateUserAsync(command, cancellationToken);
+            if (createResult.Success && request.SelectedLicenseSkuIds.Count > 0)
+            {
+                await audit.AppendAsync(new ProvisioningAuditEntry
+                {
+                    OperationId = Guid.NewGuid().ToString("N"),
+                    Chamado = command.Chamado,
+                    Operator = operatorName,
+                    TechnicalIdentity = directory.ExpectedTechnicalIdentity,
+                    Action = "m365-license-pending",
+                    Status = "pending",
+                    DistinguishedName = createResult.DistinguishedName,
+                    UserPrincipalName = preview.UserPrincipalName,
+                    OuDistinguishedName = preview.OuDistinguishedName,
+                    Licenses = request.SelectedLicenseSkuIds.Where(x => x != Guid.Empty).Distinct().Select(x => x.ToString()).ToList()
+                }, cancellationToken);
+            }
+
+            return Json(createResult);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

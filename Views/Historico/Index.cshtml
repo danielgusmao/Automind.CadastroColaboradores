@@ -1,3 +1,149 @@
-@{ ViewData["Title"] = "Histórico"; }
-<div class="page-header"><div><span class="eyebrow">Auditoria</span><h1>Histórico</h1></div></div>
-<section class="card"><div class="empty">O banco ainda não foi definido. Nenhum SQL Server será instalado até verificarmos a infraestrutura existente.</div></section>
+@model Automind.CadastroColaboradores.Models.ProvisioningHistoryViewModel
+@{
+    ViewData["Title"] = "Histórico";
+}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Auditoria</span>
+        <h1>Histórico de provisionamento</h1>
+        <p>Estado do AD e do Microsoft 365 consolidado a partir da auditoria local e do Microsoft Graph.</p>
+    </div>
+</div>
+
+@if (TempData["HistorySuccess"] is string success)
+{
+    <div class="topdesk-import-status is-success history-flash">@success</div>
+}
+@if (TempData["HistoryWarning"] is string warning)
+{
+    <div class="topdesk-import-status is-warning history-flash">@warning</div>
+}
+@if (TempData["HistoryError"] is string error)
+{
+    <div class="topdesk-import-status is-error history-flash">@error</div>
+}
+
+@if (Model.Items.Count == 0)
+{
+    <section class="card"><div class="empty">Nenhum provisionamento registrado em <code>ProvisioningAudit.jsonl</code>.</div></section>
+}
+else
+{
+    <section class="history-list">
+        @foreach (var item in Model.Items)
+        {
+            <article class="panel history-card">
+                <div class="history-head">
+                    <div>
+                        <span class="eyebrow">@item.Chamado</span>
+                        <h2>@item.DisplayName</h2>
+                        <p>@(item.UserPrincipalName ?? "UPN ainda não resolvido")</p>
+                    </div>
+                    <div class="history-meta">
+                        <span>@item.LastEventUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</span>
+                        @if (!string.IsNullOrWhiteSpace(item.Operator)) { <small>@item.Operator</small> }
+                    </div>
+                </div>
+
+                <div class="history-status-grid">
+                    <div class="history-status-row">
+                        <strong>Active Directory</strong>
+                        @if (item.AdCompleted)
+                        {
+                            <span class="status-pill status-pill-success">✓ Criado e concluído</span>
+                        }
+                        else if (item.AdFailed)
+                        {
+                            <span class="status-pill status-pill-danger">✕ Falha</span>
+                        }
+                        else
+                        {
+                            <span class="status-pill status-pill-warning">○ Em andamento / incompleto</span>
+                        }
+                    </div>
+
+                    <div class="history-status-row">
+                        <strong>Entra</strong>
+                        @if (!item.Microsoft365Checked)
+                        {
+                            <span class="status-pill status-pill-warning">Não consultado</span>
+                        }
+                        else if (!string.IsNullOrWhiteSpace(item.Microsoft365Error))
+                        {
+                            <span class="status-pill status-pill-danger">Falha na consulta</span>
+                        }
+                        else if (item.EntraExists)
+                        {
+                            <span class="status-pill status-pill-success">✓ Sincronizado</span>
+                        }
+                        else
+                        {
+                            <span class="status-pill status-pill-warning">○ Aguardando sincronização</span>
+                        }
+                    </div>
+
+                    <div class="history-status-row">
+                        <strong>UsageLocation</strong>
+                        @if (!string.IsNullOrWhiteSpace(item.UsageLocation))
+                        {
+                            <span class="status-pill status-pill-success">✓ @item.UsageLocation</span>
+                        }
+                        else
+                        {
+                            <span class="status-pill status-pill-warning">○ Pendente</span>
+                        }
+                    </div>
+
+                    <div class="history-status-row history-license-status">
+                        <strong>Microsoft 365</strong>
+                        @if (!string.IsNullOrWhiteSpace(item.Microsoft365Error))
+                        {
+                            <span class="status-pill status-pill-danger">@item.Microsoft365Error</span>
+                        }
+                        else if (item.HasAssignedLicenses)
+                        {
+                            <div class="history-license-pills">
+                                @foreach (var license in item.AssignedLicenses)
+                                {
+                                    <span class="status-pill @(license.IsHealthy ? "status-pill-success" : "status-pill-danger")">@(license.IsHealthy ? "✓" : "✕") @license.DisplayName</span>
+                                }
+                            </div>
+                        }
+                        else if (item.EntraExists)
+                        {
+                            <span class="status-pill status-pill-warning">⚠ Sem licença atribuída</span>
+                        }
+                        else
+                        {
+                            <span class="status-pill status-pill-warning">○ Aguardando usuário no Entra</span>
+                        }
+                    </div>
+                </div>
+
+                @if (item.PendingLicenseNames.Count > 0)
+                {
+                    <div class="history-pending"><strong>Licenças solicitadas:</strong> @string.Join(", ", item.PendingLicenseNames)</div>
+                }
+
+                @if (item.CanRecoverMicrosoft365 && !item.HasAssignedLicenses && Model.AssignableLicenses.Count > 0)
+                {
+                    <form asp-controller="Historico" asp-action="AtribuirLicenca" method="post" class="history-retry-form" onsubmit="return confirm('CONFIRMA a atribuição da licença Microsoft 365 selecionada para este usuário?');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="chamado" value="@item.Chamado" />
+                        <input type="hidden" name="userPrincipalName" value="@item.UserPrincipalName" />
+                        <input type="hidden" name="confirmacao" value="true" />
+                        <select name="skuId" required>
+                            <option value="">Selecione uma licença para concluir o M365...</option>
+                            @foreach (var license in Model.AssignableLicenses)
+                            {
+                                <option value="@license.SkuId">@license.DisplayName — @(license.IsUnlimited ? "ilimitada" : $"{license.AvailableUnits} de {license.EnabledUnits} disponíveis")</option>
+                            }
+                        </select>
+                        <button class="btn btn-secondary" type="submit">Atribuir / repetir M365</button>
+                    </form>
+                }
+            </article>
+        }
+    </section>
+}

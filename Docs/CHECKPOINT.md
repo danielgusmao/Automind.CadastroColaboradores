@@ -1,5 +1,44 @@
 # CHECKPOINT CUMULATIVO - MAIS NOVO PRIMEIRO
 
+## 25/09/2026 - v0.1.14 - historico operacional, recuperacao M365 e correcao de cargo
+
+### Evidencia do teste v0.1.13
+
+Teste real com chamado `I2609-0317`, usuaria `Safira Gusmao de Souza` / `safira.gusmao@automind.com.br`:
+- usuario foi criado no AD e sincronizou com o Entra;
+- Microsoft 365 Admin Center confirmou o objeto sincronizado, ainda `Unlicensed`;
+- `Cargo em portugues = Estagiaria` chegou do TOPdesk, mas `Cargo em ingles` ficou vazio porque a traducao nao existia no dicionario;
+- a tentativa tardia de `Repetir atribuicao M365` recebeu HTML de login por expiracao da sessao e o JavaScript tentou interpretar como JSON, gerando `Unexpected token '<'`;
+- nenhuma evidencia indicou atribuicao de licenca na Safira antes desta versao.
+
+### Correcoes v0.1.14
+
+- dicionario de cargos passa a traduzir `Estagiaria`/`Estagiario` para `Intern`;
+- comparacao de cargo foi endurecida para ignorar maiusculas/minusculas e acentos na chave;
+- cookie de autenticacao continua com 30 minutos, agora com `SlidingExpiration=true`;
+- chamadas AJAX declaram JSON e recebem HTTP 401/403 em vez de pagina HTML quando a sessao expira;
+- JavaScript detecta sessao expirada e orienta continuar pelo Historico, sem nova tentativa de escrita;
+- `Historico` deixa de ser placeholder e passa a ler `ProvisioningAudit.jsonl`;
+- historico consolida AD + Entra + `UsageLocation` + licencas atuais consultadas no Graph;
+- licenca presente aparece em verde com o nome; usuario sincronizado sem licenca aparece em amarelo;
+- historico permite atribuir/repetir uma licenca M365 para usuario ja criado, mantendo as mesmas validacoes de operador, UPN, OU piloto e disponibilidade do SKU;
+- novos cadastros com licenca selecionada registram `m365-license-pending` com os SKU IDs para continuidade;
+- novas entradas AD de auditoria passam a registrar `UserPrincipalName`;
+- nenhuma senha e gravada no historico.
+
+### Recuperacao da Safira
+
+Apos publicar a v0.1.14:
+1. entrar novamente no CadColab;
+2. abrir `Historico`;
+3. localizar `I2609-0317`;
+4. confirmar `AD = criado`, `Entra = sincronizado` e `Microsoft 365 = sem licenca`;
+5. selecionar `Microsoft 365 Business Standard`;
+6. clicar `Atribuir / repetir M365` e confirmar;
+7. validar `UsageLocation=BR` e a licenca verde no historico e no portal Microsoft 365.
+
+Rollback funcional: definir `Automind:Microsoft365:LicenseWritesEnabled=false` e publicar. Isso bloqueia novas escritas de licenca sem remover licencas existentes.
+
 > Arquivo unico de continuidade/historico. Novas secoes entram no topo. Documentos tematicos evoluem no proprio arquivo. Nao criar checkpoints por versao nem manter logs paralelos quando o conteudo puder ser incorporado aqui sem perda.
 
 ## 25/09/2026 - v0.1.13 - atribuicao Microsoft 365 integrada ao fluxo piloto

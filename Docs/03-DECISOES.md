@@ -1,3 +1,13 @@
+# Complemento 25/09/2026 - decisoes v0.1.14
+
+- Historico operacional usa o `ProvisioningAudit.jsonl` existente como fonte persistente nesta fase; nenhum SQL Server novo sera instalado.
+- Graph e usado apenas para enriquecer o estado atual de Entra/licencas no Historico.
+- Recuperacao M365 nao recria usuario AD.
+- `Estagiaria`/`Estagiario` -> `Intern`; chaves de traducao passam por normalizacao sem acentos.
+- sessao autenticada usa expiracao deslizante; AJAX recebe 401/403 JSON, nunca pagina HTML silenciosa.
+
+---
+
 # ESTADO VIGENTE - 25/09/2026
 
 - fase AD do piloto concluida;

@@ -1,4 +1,12 @@
-CADCOLAB v0.1.13 - PACOTE COMPLETO
+CADCOLAB v0.1.14 - PACOTE COMPLETO
+
+NOVIDADES v0.1.14
+- Cargo Estagiaria/Estagiario -> Intern;
+- sessao deslizante + AJAX 401/403 JSON;
+- Historico real a partir do ProvisioningAudit.jsonl + Graph;
+- recuperacao de licenca M365 para usuario ja criado, sem recriar AD;
+- caso Safira I2609-0317 pode ser concluido pelo Historico.
+
 
 OBJETIVO DESTA ATUALIZACAO
 - manter o inventario real Microsoft 365 validado na v0.1.12;
@@ -58,7 +66,7 @@ git branch --show-current;dotnet build -c Release;git status --short
 Esperado: branch release e build sem erros/warnings.
 
 PUBLICACAO APOS BUILD APROVADO
-git add .;git commit -m "feat: habilita atribuicao M365 controlada v0.1.13";git push origin release;git push azure release
+git add .;git commit -m "feat: adiciona historico e recuperacao M365 v0.1.14";git push origin release;git push azure release
 
 TESTE APOS DEPLOY
 1. Abrir Novo colaborador.

@@ -1,8 +1,19 @@
 # CadColab - contexto atual para continuidade
 
-Versao: `0.1.13`  
+Versao: `0.1.14`  
 Data: 25/09/2026  
 Projeto: `Automind.CadastroColaboradores`
+
+
+## Atualizacao v0.1.14
+
+- `Estagiaria` e `Estagiario` sao traduzidos para `Intern`; chave de traducao tolera acentos e caixa.
+- sessao web usa renovacao deslizante; endpoints AJAX retornam 401/403 JSON em expiracao/autorizacao, evitando `Unexpected token '<'`.
+- `Historico` agora usa `C:\Automind.CadastroColaboradores\Logs\ProvisioningAudit.jsonl` como fonte operacional, sem instalar banco.
+- status M365 e enriquecido ao vivo pelo Graph: sincronizacao, `UsageLocation` e licencas atuais.
+- usuario sincronizado sem licenca fica em alerta; licencas presentes aparecem verdes pelo nome.
+- Historico permite recuperar a etapa M365 de usuario ja criado, escolhendo um SKU ainda disponivel e passando pelas mesmas protecoes do piloto.
+- teste que motivou a versao: `I2609-0317` / `safira.gusmao@automind.com.br`, sincronizada no Entra e ainda sem licenca no momento do diagnostico.
 
 ## Estado operacional
 

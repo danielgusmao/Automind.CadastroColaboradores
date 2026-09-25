@@ -42,7 +42,29 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     options.LoginPath = "/Account/Login";
     options.AccessDeniedPath = "/Account/Login";
     options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
-    options.SlidingExpiration = false;
+    options.SlidingExpiration = true;
+    options.Events.OnRedirectToLogin = context =>
+    {
+        if (ExpectsJson(context.Request))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return context.Response.WriteAsJsonAsync(new { success = false, sessionExpired = true, message = "Sessão expirada. Entre novamente para continuar." });
+        }
+
+        context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    };
+    options.Events.OnRedirectToAccessDenied = context =>
+    {
+        if (ExpectsJson(context.Request))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return context.Response.WriteAsJsonAsync(new { success = false, message = "Acesso negado." });
+        }
+
+        context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    };
 });
 builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
@@ -79,3 +101,12 @@ app.MapControllerRoute(
     pattern: "{controller=Account}/{action=Login}/{id?}");
 
 app.Run();
+
+static bool ExpectsJson(HttpRequest request)
+{
+    if (request.Headers.TryGetValue("X-Requested-With", out var requestedWith) &&
+        requestedWith.Any(x => string.Equals(x, "XMLHttpRequest", StringComparison.OrdinalIgnoreCase)))
+        return true;
+
+    return request.Headers.TryGetValue("Accept", out var accept) && accept.Any(x => x?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true);
+}

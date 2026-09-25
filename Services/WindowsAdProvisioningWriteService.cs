@@ -530,6 +530,7 @@ public sealed class WindowsAdProvisioningWriteService(
             Action = action,
             Status = status,
             DistinguishedName = userDn,
+            UserPrincipalName = command.UserPrincipalName,
             OuDistinguishedName = command.OuDistinguishedName,
             Attributes = attributes,
             Groups = command.GroupDns.Distinct(StringComparer.OrdinalIgnoreCase).ToList()

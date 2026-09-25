@@ -452,14 +452,33 @@ document.addEventListener('DOMContentLoaded', () => {
             credentials: 'same-origin',
             cache: 'no-store',
             headers: {
+                'Accept': 'application/json',
                 'Content-Type': 'application/json',
-                'RequestVerificationToken': token
+                'RequestVerificationToken': token,
+                'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify(body)
         });
 
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return response.json();
+        const contentType = response.headers.get('content-type') || '';
+        if (response.status === 401) {
+            const error = new Error('Sessão expirada. Entre novamente e continue pelo Histórico.');
+            error.sessionExpired = true;
+            throw error;
+        }
+
+        if (!contentType.toLowerCase().includes('application/json')) {
+            if (response.redirected || response.url.toLowerCase().includes('/account/login')) {
+                const error = new Error('Sessão expirada. Entre novamente e continue pelo Histórico.');
+                error.sessionExpired = true;
+                throw error;
+            }
+            throw new Error(`Resposta inesperada do servidor (HTTP ${response.status}).`);
+        }
+
+        const result = await response.json();
+        if (!response.ok) throw new Error(result?.message || `HTTP ${response.status}`);
+        return result;
     };
 
     const updateChecks = (checks) => {
@@ -544,6 +563,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 lastM365Request = null;
                 return true;
             } catch (error) {
+                if (error?.sessionExpired) {
+                    setStatus(m365ProvisionStatus, 'Sessão expirada. O AD já foi criado e nenhuma nova escrita será tentada nesta tela. Entre novamente e abra Histórico para concluir o Microsoft 365.', 'warning');
+                    if (retryM365Button) retryM365Button.hidden = true;
+                    return false;
+                }
                 setStatus(m365ProvisionStatus, `Falha ao chamar o Microsoft 365 (${error.message}). O AD já foi criado; revise antes de repetir.`, 'error');
                 if (retryM365Button) retryM365Button.hidden = false;
                 return false;

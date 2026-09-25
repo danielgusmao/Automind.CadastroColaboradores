@@ -1,3 +1,19 @@
+# Atualizacao corrente - v0.1.14
+
+Validacao local:
+
+```powershell
+git branch --show-current;dotnet build -c Release;git status --short
+```
+
+Commit/push apos build aprovado:
+
+```powershell
+git add .;git commit -m "feat: adiciona historico e recuperacao M365 v0.1.14";git push origin release;git push azure release
+```
+
+---
+
 # Atualizacao corrente - v0.1.13
 
 Validacao antes do commit:

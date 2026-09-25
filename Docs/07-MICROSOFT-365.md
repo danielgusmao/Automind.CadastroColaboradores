@@ -1,3 +1,13 @@
+# Complemento 25/09/2026 - v0.1.14 / historico e recuperacao
+
+O teste `I2609-0317` comprovou que o usuario pode sincronizar no Entra depois que a espera da tela termina. Tambem revelou expiracao da sessao web durante o retry: o middleware redirecionou a chamada AJAX para HTML de login e o navegador tentou interpretar esse HTML como JSON.
+
+A v0.1.14 corrige isso com renovacao deslizante do cookie e resposta JSON 401/403 para chamadas AJAX. O Historico consulta o audit JSONL e o Graph para mostrar o estado atual. Se o usuario estiver sincronizado e sem licenca, o operador pode selecionar um SKU disponivel no Historico e concluir a atribuicao sem recriar o usuario AD.
+
+As protecoes permanecem: operador autorizado, UPN corporativo exato, usuario dentro da OU piloto, revalidacao do SKU/vaga, `UsageLocation=BR`, readback e rollback somente do delta adicionado.
+
+---
+
 # Microsoft 365 / Entra / Microsoft Graph
 
 ## Estado vigente - 25/09/2026 - v0.1.13

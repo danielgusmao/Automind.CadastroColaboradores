@@ -2,7 +2,20 @@
 
 ASP.NET Core MVC / .NET 10 Windows para cadastro e provisionamento controlado de colaboradores Automind.
 
-## Estado atual - v0.1.13
+## Estado atual - v0.1.14
+
+
+### v0.1.14 - recuperacao operacional
+
+- corrige traducao de `Estagiaria`/`Estagiario` para `Intern`;
+- evita erro JSON quando a sessao expira durante polling M365;
+- habilita `SlidingExpiration` da autenticacao;
+- transforma `Historico` em painel real baseado no `ProvisioningAudit.jsonl` + leitura ao vivo do Graph;
+- mostra AD, Entra, `UsageLocation` e licencas atuais;
+- permite concluir/repetir licenciamento M365 de usuario ja criado sem recriar o AD;
+- registra pendencia M365 e UPN nas novas auditorias.
+
+Caso de recuperacao inicial: `I2609-0317` / `safira.gusmao@automind.com.br`.
 
 ### Active Directory
 
@@ -74,12 +87,12 @@ git branch --show-current;dotnet build -c Release;git status --short
 Depois do build aprovado:
 
 ```powershell
-git add .;git commit -m "feat: habilita atribuicao M365 controlada v0.1.13";git push origin release;git push azure release
+git add .;git commit -m "feat: adiciona historico e recuperacao M365 v0.1.14";git push origin release;git push azure release
 ```
 
 Nao criar tag Git automaticamente.
 
-## Teste da v0.1.13
+## Teste da v0.1.14
 
 Depois do deploy:
 1. abrir `Novo colaborador`;
