@@ -200,7 +200,7 @@ public sealed class WindowsAdReadOnlyService(AdConnectionFactory directory) : IA
             SearchScope = SearchScope.Subtree,
             PageSize = 100
         };
-        foreach (var property in new[] { "displayName", "sAMAccountName", "distinguishedName" })
+        foreach (var property in new[] { "displayName", "sAMAccountName", "userPrincipalName", "distinguishedName" })
             searcher.PropertiesToLoad.Add(property);
 
         var matches = new List<AdUserResolution>();
@@ -213,6 +213,7 @@ public sealed class WindowsAdReadOnlyService(AdConnectionFactory directory) : IA
                 Found = true,
                 DisplayName = AdConnectionFactory.PropertyString(entry, "displayName"),
                 SamAccountName = AdConnectionFactory.PropertyString(entry, "sAMAccountName"),
+                UserPrincipalName = AdConnectionFactory.PropertyString(entry, "userPrincipalName"),
                 DistinguishedName = AdConnectionFactory.PropertyString(entry, "distinguishedName")
             });
         }

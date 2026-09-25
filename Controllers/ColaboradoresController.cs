@@ -161,12 +161,12 @@ public sealed class ColaboradoresController(
         }
         catch (Exception exception)
         {
-            logger.LogWarning("Falha na pré-validação AD. Tipo: {ErrorType}; código: {Code}", exception.GetType().Name, exception.HResult);
+            logger.LogWarning("Falha na pré-validação AD/M365. Tipo: {ErrorType}; código: {Code}", exception.GetType().Name, exception.HResult);
             return Json(new AdProvisioningValidationResponse
             {
                 Success = false,
                 Valid = false,
-                Message = "Não foi possível concluir a consulta no Active Directory. Nenhuma alteração foi realizada."
+                Message = "Não foi possível concluir as consultas de validação no Active Directory/Microsoft 365. Nenhuma alteração foi realizada."
             });
         }
     }
@@ -230,6 +230,69 @@ public sealed class ColaboradoresController(
         {
             logger.LogWarning("Falha antes da chamada de escrita AD. Tipo: {ErrorType}; código: {Code}", exception.GetType().Name, exception.HResult);
             return Json(CreateBlocked("Não foi possível concluir as validações finais. Nenhuma nova escrita deve ser tentada até revisão."));
+        }
+    }
+
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AplicarLicencasMicrosoft365([FromBody] Microsoft365LicenseAssignmentRequest request, CancellationToken cancellationToken)
+    {
+        Response.Headers["Cache-Control"] = "no-store, no-cache, max-age=0";
+        Response.Headers["Pragma"] = "no-cache";
+
+        if (!request.Confirmacao)
+            return Json(new Microsoft365LicenseAssignmentResponse { Success = false, Message = "A atribuição de licenças exige confirmação explícita do operador." });
+        if (!microsoft365.LicenseWritesEnabled)
+            return Json(new Microsoft365LicenseAssignmentResponse { Success = false, Message = "A escrita de licenças Microsoft 365 está desabilitada." });
+
+        var operatorName = User.Identity?.Name ?? HttpContext.Session.GetString("Usuario") ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(operatorName) || !await adAuthorization.IsAuthorizedAsync(operatorName, cancellationToken))
+            return Json(new Microsoft365LicenseAssignmentResponse { Success = false, Message = "O operador não está autorizado pelo grupo configurado no Active Directory." });
+
+        var ticketValidation = ValidateTicket(request.Chamado);
+        if (!ticketValidation.Valid)
+            return Json(new Microsoft365LicenseAssignmentResponse { Success = false, Message = ticketValidation.Message });
+
+        var upn = (request.UserPrincipalName ?? string.Empty).Trim();
+        if (!upn.EndsWith($"@{directory.EmailDomain}", StringComparison.OrdinalIgnoreCase))
+            return Json(new Microsoft365LicenseAssignmentResponse { Success = false, Message = "UPN fora do domínio corporativo autorizado." });
+
+        var atIndex = upn.IndexOf('@');
+        var samAccountName = atIndex > 0 ? upn[..atIndex] : upn;
+        var adUser = await ad.ResolveUserAsync(samAccountName, cancellationToken);
+        if (!adUser.Found || adUser.Ambiguous || string.IsNullOrWhiteSpace(adUser.DistinguishedName))
+            return Json(new Microsoft365LicenseAssignmentResponse { Success = false, Message = "O usuário não foi localizado de forma única no Active Directory." });
+        if (!string.Equals(adUser.UserPrincipalName, upn, StringComparison.OrdinalIgnoreCase))
+            return Json(new Microsoft365LicenseAssignmentResponse { Success = false, Message = "O UPN informado não corresponde ao usuário localizado no Active Directory." });
+
+        var inWriteScope = adWriter.WriteAllowedOuDns.Any(ou =>
+            adUser.DistinguishedName.EndsWith($",{ou}", StringComparison.OrdinalIgnoreCase));
+        if (!inWriteScope)
+            return Json(new Microsoft365LicenseAssignmentResponse { Success = false, Message = "O usuário não pertence ao escopo de escrita piloto autorizado." });
+
+        try
+        {
+            return Json(await microsoft365.AssignLicensesAsync(
+                request.Chamado ?? string.Empty,
+                operatorName,
+                upn,
+                request.SelectedLicenseSkuIds,
+                cancellationToken));
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning("Falha na chamada Microsoft 365. Tipo: {ErrorType}; código: {Code}", exception.GetType().Name, exception.HResult);
+            return Json(new Microsoft365LicenseAssignmentResponse
+            {
+                Success = false,
+                UserPrincipalName = upn,
+                Message = "Não foi possível concluir a chamada ao Microsoft 365. Nenhuma nova tentativa automática será feita nesta requisição."
+            });
         }
     }
 
@@ -318,6 +381,7 @@ public sealed class ColaboradoresController(
         var nameValidation = ValidateFullName(request.NomeCompleto);
         var emailValidation = ValidateCorporateEmail(request.Login, request.Email);
         var organizationValidation = ValidateOrganization(request.CargoIngles, request.Departamento);
+        var licenseValidation = await microsoft365.ValidateSelectionAsync(request.SelectedLicenseSkuIds ?? [], cancellationToken);
 
         foreach (var suggestion in suggestions)
             suggestion.Selecionado = !suggestion.Protegido && requestedGroups.Contains(suggestion.DistinguishedName, StringComparer.OrdinalIgnoreCase);
@@ -341,17 +405,18 @@ public sealed class ColaboradoresController(
             Check("manager", "Superior localizado", manager.Found && !manager.Ambiguous, ManagerMessage(manager)),
             Check("ou", "OU válida", ou.Exists && ou.Allowed,
                 ou.Exists && ou.Allowed ? $"OU confirmada: {ou.DisplayName}." : "A OU não existe no AD ou não está na lista permitida."),
-            Check("groups", "Grupos válidos", groupsPassed, GroupMessage(requestedGroups, groups, invalidRequestedGroups, writeUnauthorizedGroups, adWriter.GroupWritesEnabled))
+            Check("groups", "Grupos válidos", groupsPassed, GroupMessage(requestedGroups, groups, invalidRequestedGroups, writeUnauthorizedGroups, adWriter.GroupWritesEnabled)),
+            Check("licenses", "Licenças Microsoft 365 válidas", licenseValidation.Valid, licenseValidation.Message)
         };
 
         var valid = checks.All(x => x.Passed);
-        var preview = valid ? BuildPreview(request, manager, ou, resolvedRequestedGroups, requestedGroups) : null;
+        var preview = valid ? BuildPreview(request, manager, ou, resolvedRequestedGroups, requestedGroups, licenseValidation.SelectedLicenses) : null;
         var response = new AdProvisioningValidationResponse
         {
             Success = true,
             Valid = valid,
             Message = valid
-                ? "Pré-validação concluída no Active Directory. Nenhuma escrita foi executada."
+                ? "Pré-validação concluída no Active Directory e Microsoft 365. Nenhuma escrita foi executada."
                 : "A pré-validação encontrou pendências. Nenhuma escrita foi executada.",
             Checks = checks,
             Groups = suggestions,
@@ -373,6 +438,8 @@ public sealed class ColaboradoresController(
         ViewBag.GroupWriteAllowedDns = adWriter.GroupWriteAllowedDns.ToArray();
         ViewBag.Microsoft365Enabled = microsoft365.IsEnabled;
         ViewBag.Microsoft365LicenseWritesEnabled = microsoft365.LicenseWritesEnabled;
+        ViewBag.Microsoft365SyncPollSeconds = microsoft365.SyncPollSeconds;
+        ViewBag.Microsoft365SyncMaxWaitSeconds = microsoft365.SyncMaxWaitSeconds;
 
         try
         {
@@ -443,7 +510,8 @@ public sealed class ColaboradoresController(
         AdUserResolution manager,
         AdOuValidation ou,
         IReadOnlyList<GroupSuggestion> selectedGroupMetadata,
-        IReadOnlyCollection<string> requestedGroups)
+        IReadOnlyCollection<string> requestedGroups,
+        IReadOnlyList<Microsoft365LicenseInfo> selectedLicenses)
     {
         var fullName = (request.NomeCompleto ?? string.Empty).Trim();
         var nameParts = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -476,7 +544,8 @@ public sealed class ColaboradoresController(
             TelephoneNumber = request.DivulgarContato ? request.TelefoneCelular?.Trim() : null,
             ManagerDistinguishedName = manager.DistinguishedName,
             OuDistinguishedName = ou.DistinguishedName,
-            Groups = groupNames
+            Groups = groupNames,
+            Licenses = selectedLicenses.Select(x => x.DisplayName).OrderBy(x => x, StringComparer.CurrentCultureIgnoreCase).ToList()
         };
     }
 

@@ -2,6 +2,98 @@
 
 > Arquivo unico de continuidade/historico. Novas secoes entram no topo. Documentos tematicos evoluem no proprio arquivo. Nao criar checkpoints por versao nem manter logs paralelos quando o conteudo puder ser incorporado aqui sem perda.
 
+## 25/09/2026 - v0.1.13 - atribuicao Microsoft 365 integrada ao fluxo piloto
+
+### Fechamento da v0.1.12 no servidor
+
+A v0.1.12 foi publicada e testada. Evidencia funcional confirmou:
+- `Graph conectado`;
+- inventario real com 20 SKUs e nomes amigaveis;
+- Business Standard exibida como 17 de 166 disponiveis naquele snapshot;
+- estados `Disponivel`, `Sem vagas` e `Suspensa`;
+- checkboxes de licenca bloqueados, conforme desenho da v0.1.12;
+- AD/TOPdesk continuaram independentes da escrita M365.
+
+### Autorizacao para a proxima etapa
+
+Usuario aprovou explicitamente habilitar na proxima versao:
+- selecao de licencas disponiveis;
+- atribuicao real no fluxo normal do piloto;
+- `UsageLocation=BR`;
+- readback, auditoria e rollback especifico.
+
+### Implementacao v0.1.13
+
+Configuracao:
+- `Microsoft365.Enabled=true`;
+- `LicenseInventoryEnabled=true`;
+- `LicenseWritesEnabled=true`;
+- `UsageLocation=BR`;
+- `SyncPollSeconds=10`;
+- `SyncMaxWaitSeconds=180`.
+
+UI:
+- somente `CanAssign=true` pode ser marcado;
+- sem vaga/suspensa continuam desabilitadas;
+- selecao passa no request como `SelectedLicenseSkuIds`;
+- pre-validacao ganhou check `Licencas Microsoft 365 validas`;
+- preview mostra licencas selecionadas;
+- apos sucesso AD, UI inicia automaticamente o fluxo M365;
+- se Entra ainda nao conhece o usuario, mostra espera e faz polling;
+- apos 180s sem sincronizacao, nenhuma licenca e gravada e aparece `Repetir atribuicao M365`.
+
+Backend:
+- novo endpoint `AplicarLicencasMicrosoft365`;
+- exige confirmacao, operador autorizado, dominio corporativo, correspondencia exata do UPN com o usuario AD e usuario dentro de `WriteAllowedOuDns`;
+- Graph revalida SKU/vaga antes da escrita;
+- `UsageLocation` vazio -> `BR`; valor existente diferente de `BR` bloqueia sobrescrita automatica;
+- `assignLicense` adiciona apenas SKU ausente;
+- readback confirma `assignedLicenses` e verifica erro de estado; atribuicao/rollback toleram propagacao do Graph com releituras por ate ~17s;
+- cache de `subscribedSkus` e invalidado apos escrita;
+- rollback automatico remove somente `toAdd`, isto e, licencas ausentes antes e adicionadas pela tentativa;
+- `UsageLocation=BR` nao e limpo no rollback.
+
+Auditoria:
+- `ProvisioningAuditEntry` passa a suportar `UserPrincipalName` e `Licenses`;
+- acoes M365: `m365-license-start`, `m365-usage-location`, `m365-license-assign`, `m365-license-readback`, `m365-license-rollback`, `m365-license-complete`;
+- mesmo arquivo `C:\Automind.CadastroColaboradores\Logs\ProvisioningAudit.jsonl`;
+- senha continua fora de qualquer log.
+
+### Sincronizacao Entra
+
+O ambiente ja possui Microsoft Entra Cloud Sync. Documentacao Microsoft atual informa que Cloud Sync provisiona mudancas aproximadamente a cada 2 minutos. Para o piloto, a UI espera ate 180 segundos e consulta a cada 10 segundos.
+
+Nao ha fila/background worker nesta versao. Se a pagina for fechada antes da conclusao, a atribuicao automatica nao continua em segundo plano.
+
+### Rollback v0.1.13
+
+Contencao funcional:
+- definir `Automind:Microsoft365:LicenseWritesEnabled=false`;
+- publicar;
+- inventario permanece disponivel, escrita fica bloqueada.
+
+Rollback de operacao:
+- codigo remove somente SKUs adicionados pela tentativa;
+- nunca remove licencas preexistentes;
+- se rollback nao for confirmado, `RequiresManualReview=true` e o fluxo deve parar;
+- `UsageLocation=BR` permanece.
+
+Rollback integral Graph/certificado/ACE continua em `Docs/07-MICROSOFT-365.md`.
+
+### Proximo gate
+
+1. executar `dotnet build -c Release`;
+2. exigir 0 erros/0 warnings;
+3. publicar branch `release`;
+4. usar NOVO usuario piloto em `07.Outros`;
+5. selecionar Business Standard (ou outro SKU com vaga);
+6. validar AD/M365;
+7. criar usuario;
+8. confirmar sincronizacao, `UsageLocation=BR`, atribuicao e auditoria;
+9. parar no primeiro resultado inesperado.
+
+---
+
 ## 25/09/2026 - v0.1.12 - Graph validado, teste real de licenca concluido e inventario M365 integrado
 
 ### Fechamento da fase de validacao Microsoft 365

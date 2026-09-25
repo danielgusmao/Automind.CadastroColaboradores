@@ -17,6 +17,8 @@
     var microsoft365LicenseWritesEnabled = ViewBag.Microsoft365LicenseWritesEnabled is bool m365Writes && m365Writes;
     var microsoft365Licenses = ViewBag.Microsoft365Licenses as IReadOnlyList<Microsoft365LicenseInfo> ?? [];
     var microsoft365Error = ViewBag.Microsoft365Error as string;
+    var microsoft365SyncPollSeconds = ViewBag.Microsoft365SyncPollSeconds is int pollSeconds ? pollSeconds : 10;
+    var microsoft365SyncMaxWaitSeconds = ViewBag.Microsoft365SyncMaxWaitSeconds is int maxWaitSeconds ? maxWaitSeconds : 180;
     var microsoft365Healthy = microsoft365Enabled && string.IsNullOrWhiteSpace(microsoft365Error);
     var commonGroups = Model.GruposSugeridos.Where(g => !g.Protegido && g.TotalComparados > 0 && g.EncontradoEm == g.TotalComparados).ToList();
     var exceptionGroups = Model.GruposSugeridos.Where(g => !g.Protegido && (g.TotalComparados == 0 || g.EncontradoEm != g.TotalComparados)).ToList();
@@ -42,7 +44,7 @@
             @if (writeMode)
             {
                 <strong>Piloto de escrita ativo apenas no escopo autorizado.</strong>
-                <span>Criação permitida somente na OU piloto. Memberships podem ser gravadas apenas nos grupos da allowlist de escrita; o inventário Microsoft 365 é somente leitura e a escrita de licenças permanece bloqueada.</span>
+                <span>Criação permitida somente na OU piloto. Memberships seguem a allowlist de escrita; licenças Microsoft 365 disponíveis podem ser selecionadas e são atribuídas somente após o usuário sincronizar com o Entra.</span>
             }
             else
             {
@@ -95,10 +97,14 @@
           data-manual-groups-url='@Url.Action("BuscarOutrosGrupos", "Colaboradores")'
           data-validation-url='@Url.Action("ValidarAd", "Colaboradores")'
           data-create-url='@Url.Action("CriarUsuarioPiloto", "Colaboradores")'
+          data-m365-license-url='@Url.Action("AplicarLicencasMicrosoft365", "Colaboradores")'
           data-pilot-membership-url='@Url.Action("AplicarMembershipPiloto", "Colaboradores")'
           data-write-enabled="@writeMode.ToString().ToLowerInvariant()"
           data-write-target-ou="@writeTargetOu"
-          data-group-writes-enabled="@groupWritesEnabled.ToString().ToLowerInvariant()">
+          data-group-writes-enabled="@groupWritesEnabled.ToString().ToLowerInvariant()"
+          data-m365-license-writes-enabled="@microsoft365LicenseWritesEnabled.ToString().ToLowerInvariant()"
+          data-m365-sync-poll-seconds="@microsoft365SyncPollSeconds"
+          data-m365-sync-max-wait-seconds="@microsoft365SyncMaxWaitSeconds">
         @Html.AntiForgeryToken()
         <input type="hidden" name="Chamado" value="@Model.Chamado" />
         <input type="hidden" name="PerfilUsuario" value="@Model.PerfilUsuario" />
@@ -297,7 +303,7 @@
                 <div>
                     <span class="eyebrow">04 · MICROSOFT 365</span>
                     <h2>Licenças disponíveis</h2>
-                    <p>Inventário consultado no Microsoft Graph. Esta versão apenas exibe as assinaturas e a quantidade disponível.</p>
+                    <p>Inventário consultado no Microsoft Graph. Selecione as licenças disponíveis que deverão ser atribuídas após a sincronização do novo usuário com o Entra.</p>
                 </div>
                 <span class="status-pill @(microsoft365Healthy ? "status-pill-success" : (!string.IsNullOrWhiteSpace(microsoft365Error) ? "status-pill-danger" : string.Empty))">@(microsoft365Healthy ? "Graph conectado" : (!string.IsNullOrWhiteSpace(microsoft365Error) ? "Falha na consulta" : "Desativado"))</span>
             </div>
@@ -325,30 +331,44 @@
                 <div class="license-list">
                     @foreach (var license in microsoft365Licenses)
                     {
-                        <div class="license-row @(license.IsSuspended ? "is-suspended" : string.Empty)">
+                        var canSelectLicense = microsoft365LicenseWritesEnabled && license.CanAssign;
+                        <div class="license-row @(license.IsSuspended ? "is-suspended" : string.Empty)" data-license-row data-sku-id="@license.SkuId" data-available-units="@license.AvailableUnits" data-enabled-units="@license.EnabledUnits">
                             <div class="license-selector">
-                                <input type="checkbox" disabled title="Seleção de licença ainda não habilitada nesta versão." />
+                                <input type="checkbox"
+                                       class="license-checkbox"
+                                       value="@license.SkuId"
+                                       data-license-name="@license.DisplayName"
+                                       disabled="@(!canSelectLicense)"
+                                       title="@(canSelectLicense ? $"Selecionar {license.DisplayName}" : "Licença indisponível para seleção nesta operação.")" />
                             </div>
                             <div class="license-copy">
                                 <strong>@license.DisplayName</strong>
                                 @if (license.IsSuspended)
                                 {
-                                    <span>Assinatura suspensa</span>
+                                    <span data-license-count>Assinatura suspensa</span>
+                                }
+                                else if (!license.IsEnabled)
+                                {
+                                    <span data-license-count>Status da assinatura: @license.CapabilityStatus</span>
                                 }
                                 else if (license.IsUnlimited)
                                 {
-                                    <span>Licenças ilimitadas disponíveis</span>
+                                    <span data-license-count>Licenças ilimitadas disponíveis</span>
                                 }
                                 else
                                 {
-                                    <span><b>@license.AvailableUnits</b> de @license.EnabledUnits licenças disponíveis</span>
+                                    <span data-license-count><b>@license.AvailableUnits</b> de @license.EnabledUnits licenças disponíveis</span>
                                 }
                                 <small>@license.SkuPartNumber</small>
                             </div>
-                            <div class="license-state">
+                            <div class="license-state" data-license-state>
                                 @if (license.IsSuspended)
                                 {
                                     <span class="status-pill status-pill-danger">Suspensa</span>
+                                }
+                                else if (!license.IsEnabled)
+                                {
+                                    <span class="status-pill status-pill-danger">Indisponível</span>
                                 }
                                 else if (!license.IsUnlimited && license.AvailableUnits == 0)
                                 {
@@ -364,7 +384,13 @@
                 </div>
                 @if (!microsoft365LicenseWritesEnabled)
                 {
-                    <div class="license-readonly-note">Seleção e atribuição permanecem desabilitadas nesta versão. A consulta usa apenas o inventário do tenant.</div>
+                    <div class="license-readonly-note">Seleção desabilitada por configuração. O inventário permanece somente leitura.</div>
+                }
+                else
+                {
+                    <div class="license-readonly-note">A seleção é revalidada no backend. Após criar o usuário no AD, o sistema aguarda o Cloud Sync e atribui somente os SKUs selecionados. Em falha, remove apenas as licenças adicionadas pela operação.</div>
+                    <div class="topdesk-import-status" data-m365-provision-status hidden></div>
+                    <button type="button" class="btn btn-secondary btn-small license-retry" data-retry-m365 hidden>Repetir atribuição M365</button>
                 }
             }
         </section>
@@ -372,8 +398,8 @@
         <section class="panel validation-panel span-full">
             <div class="validation-copy">
                 <span class="eyebrow">05 · PRÉ-VALIDAÇÃO</span>
-                <h2>Validar no AD</h2>
-                <p>Revalida chamado, identidade, superior, OU e grupos diretamente no backend. Microsoft 365 não participa desta etapa.</p>
+                <h2>Validar AD + Microsoft 365</h2>
+                <p>Revalida chamado, identidade, superior, OU, grupos e as licenças Microsoft 365 selecionadas diretamente no backend.</p>
             </div>
             <div class="validation-checks">
                 <span data-ad-check="ticket">○ Chamado TOPdesk válido</span>
@@ -386,9 +412,10 @@
                 <span data-ad-check="manager">○ Superior localizado</span>
                 <span data-ad-check="ou">○ OU válida</span>
                 <span data-ad-check="groups">○ Grupos válidos</span>
+                <span data-ad-check="licenses">○ Licenças Microsoft 365 válidas</span>
             </div>
             <div class="validation-actions">
-                <button type="button" class="btn btn-primary btn-wide" data-validate-ad>Validar no AD <small>somente leitura</small></button>
+                <button type="button" class="btn btn-primary btn-wide" data-validate-ad>Validar AD + M365 <small>somente leitura</small></button>
             </div>
             <div class="topdesk-import-status validation-status" data-validation-status hidden></div>
         </section>
@@ -417,6 +444,7 @@
                 <div class="preview-wide"><dt>Manager DN</dt><dd data-preview="managerDistinguishedName"></dd></div>
                 <div class="preview-wide"><dt>OU DN</dt><dd data-preview="ouDistinguishedName"></dd></div>
                 <div class="preview-wide"><dt>@(groupWritesEnabled ? "Grupos selecionados" : "Grupos sugeridos/selecionados (não escritos)")</dt><dd data-preview="groups"></dd></div>
+                <div class="preview-wide"><dt>Licenças Microsoft 365 selecionadas</dt><dd data-preview="licenses"></dd></div>
             </dl>
         </section>
 
@@ -431,7 +459,7 @@
                     <strong>Escopo de escrita:</strong>
                     <code>@writeTargetOu</code>
                 </div>
-                <p>O backend reexecuta todas as validações imediatamente antes da escrita. A conta nasce desabilitada, recebe atributos, senha e manager, recebe somente as memberships autorizadas, é relida e só então é habilitada. M365, proxyAddresses e pwdLastSet permanecem bloqueados.</p>
+                <p>O backend reexecuta todas as validações imediatamente antes da escrita. A conta nasce desabilitada, recebe atributos, senha, manager e memberships autorizadas, é relida e habilitada. Se houver licenças selecionadas, a tela aguarda a sincronização com o Entra e aplica UsageLocation=BR + licenças com readback e rollback específico. proxyAddresses e pwdLastSet permanecem fora do contrato.</p>
                 <button type="button" class="btn btn-primary btn-wide" data-create-user disabled>Criar usuário piloto no AD</button>
                 <div class="topdesk-import-status" data-create-status hidden></div>
                 <div class="temporary-password" data-temporary-password hidden>

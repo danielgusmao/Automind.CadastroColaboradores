@@ -20,12 +20,14 @@ Este pacote e autossuficiente para continuidade por humano ou LLM.
 - preservar informacao, nao quantidade de arquivos;
 - informacoes mais novas prevalecem quando uma secao historica descrever estado antigo.
 
-## Estado resumido - v0.1.12
+## Estado resumido - v0.1.13
 
 - fase Active Directory do piloto concluida;
 - Microsoft Graph App-only por certificado validado;
-- `lucas.costa` recebeu e teve removida Microsoft 365 Business Standard com sucesso; estado final: 0 licencas, `UsageLocation=BR`;
-- tela `Novo colaborador` passa a exibir inventario real de licencas/quantidades;
-- `LicenseWritesEnabled=false`: nenhuma escrita M365 integrada ao sistema nesta versao.
+- v0.1.12 foi publicada/testada e o inventario M365 apareceu corretamente no servidor;
+- teste manual real de `UsageLocation=BR` + Business Standard + remocao concluido em `lucas.costa`;
+- v0.1.13 habilita selecao de SKUs disponiveis e atribuicao M365 controlada apos o usuario sincronizar com o Entra;
+- `LicenseWritesEnabled=true` somente dentro do escopo piloto e com revalidacao backend;
+- rollback automatico remove somente licencas adicionadas pela tentativa.
 
-Proximo gate: build/deploy da v0.1.12 e validacao visual do inventario M365 no servidor `10.1.2.21`.
+Proximo gate: build/deploy da v0.1.13 e teste ponta a ponta com um NOVO usuario piloto em `07.Outros`.

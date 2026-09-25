@@ -6,8 +6,9 @@
 - nao alterar exibicao da senha em PDF/impressao sem novo pedido;
 - Microsoft Graph App-only por certificado validado;
 - teste real de `UsageLocation=BR` + atribuicao/remocao de Business Standard concluido no usuario piloto;
-- v0.1.12 habilita somente o inventario visual M365; `LicenseWritesEnabled=false`;
-- nenhuma atribuicao/remocao M365 deve ser integrada ao fluxo normal sem nova etapa explicitamente aprovada.
+- v0.1.12 foi publicada e validada com inventario visual M365;
+- v0.1.13 foi explicitamente aprovada para habilitar selecao/atribuicao controlada; `LicenseWritesEnabled=true`;
+- escrita M365 continua restrita ao piloto, com revalidacao de SKU, OU e operador.
 
 ---
 
@@ -182,6 +183,22 @@
 - cada pacote deve ser compreensivel por outro humano/LLM sem acesso ao chat;
 - arquivos redundantes podem ser removidos somente depois da incorporacao integral do conteudo relevante;
 - nomes curtos continuam desejaveis para evitar problemas de caminho, mas nunca a custa de apagar conteudo historico.
+
+## 25/09/2026 - decisoes Microsoft 365 / v0.1.13
+
+- usuario aprovou habilitar a atribuicao M365 na proxima versao apos validar a v0.1.12 no servidor;
+- checkboxes ficam habilitados somente para SKU disponivel; Sem vagas e Suspensa continuam bloqueados;
+- selecao de licenca participa da pre-validacao backend;
+- `LicenseWritesEnabled=true` na v0.1.13;
+- o endpoint de escrita M365 continua limitado a usuario do AD dentro de `WriteAllowedOuDns`;
+- novo usuario pode ainda nao existir no Entra imediatamente apos `New-ADUser`; nesse caso nenhuma escrita M365 ocorre e a UI faz polling;
+- `UsageLocation` vazio deve receber `BR`; valor existente diferente de `BR` nao deve ser sobrescrito automaticamente;
+- licencas ja existentes no usuario nunca entram no rollback da tentativa;
+- rollback remove somente SKUs adicionados pela tentativa;
+- `UsageLocation=BR` nao e revertido automaticamente;
+- auditoria M365 deve compartilhar o `ProvisioningAudit.jsonl`;
+- falha/timeout de sincronizacao nao desfaz o usuario AD criado; deve ficar explicita na tela;
+- v0.1.13 nao cria fila/background job; retry automatico depende da pagina aberta.
 
 ## 25/09/2026 - decisoes Microsoft 365 / v0.1.12
 

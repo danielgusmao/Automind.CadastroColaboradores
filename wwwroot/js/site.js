@@ -106,10 +106,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const manualGroupsUrl = form.dataset.manualGroupsUrl;
     const validationUrl = form.dataset.validationUrl;
     const createUrl = form.dataset.createUrl;
+    const m365LicenseUrl = form.dataset.m365LicenseUrl;
     const pilotMembershipUrl = form.dataset.pilotMembershipUrl;
     const writeEnabled = form.dataset.writeEnabled === 'true';
     const writeTargetOu = (form.dataset.writeTargetOu || '').trim();
     const groupWritesEnabled = form.dataset.groupWritesEnabled === 'true';
+    const m365LicenseWritesEnabled = form.dataset.m365LicenseWritesEnabled === 'true';
+    const m365SyncPollSeconds = Math.max(5, Number(form.dataset.m365SyncPollSeconds || 10));
+    const m365SyncMaxWaitSeconds = Math.max(30, Number(form.dataset.m365SyncMaxWaitSeconds || 180));
     const groupsBody = form.querySelector('[data-groups-body]');
     const groupsTable = form.querySelector('[data-groups-table]');
     const groupsSummary = form.querySelector('[data-groups-summary]');
@@ -128,6 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const passwordValue = form.querySelector('[data-password-value]');
     const pilotMembershipButton = form.querySelector('[data-apply-pilot-membership]');
     const pilotMembershipStatus = form.querySelector('[data-pilot-membership-status]');
+    const m365ProvisionStatus = form.querySelector('[data-m365-provision-status]');
+    const retryM365Button = form.querySelector('[data-retry-m365]');
     const ticketSource = document.querySelector('[data-ticket-source]');
     const ticketHidden = form.querySelector('[name="Chamado"]');
     const loginInput = form.querySelector('[data-samaccountname]');
@@ -135,6 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginLengthWarning = form.querySelector('[data-login-length-warning]');
     const loginMaxLength = 20;
     let lastValidationValid = false;
+    let lastM365Request = null;
 
     const fieldValue = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
     const checked = (name) => Boolean(form.querySelector(`[name="${name}"]`)?.checked);
@@ -194,6 +201,14 @@ document.addEventListener('DOMContentLoaded', () => {
         .map((checkbox) => checkbox.value)
         .filter(Boolean);
 
+    const selectedLicenseSkuIds = () => Array.from(form.querySelectorAll('.license-checkbox:checked:not(:disabled)'))
+        .map((checkbox) => checkbox.value)
+        .filter(Boolean);
+
+    const selectedLicenseNames = () => Array.from(form.querySelectorAll('.license-checkbox:checked:not(:disabled)'))
+        .map((checkbox) => checkbox.dataset.licenseName || checkbox.value)
+        .filter(Boolean);
+
     const buildRequest = (confirmacao = false) => ({
         chamado: fieldValue('Chamado'),
         nomeCompleto: fieldValue('NomeCompleto'),
@@ -208,6 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
         perfilUsuario: fieldValue('PerfilUsuario'),
         ouDistinguishedName: fieldValue('OuDistinguishedName'),
         selectedGroupDns: selectedGroupDns(),
+        selectedLicenseSkuIds: selectedLicenseSkuIds(),
         confirmacao
     });
 
@@ -471,6 +487,74 @@ document.addEventListener('DOMContentLoaded', () => {
         preview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     };
 
+    form.querySelectorAll('.license-checkbox').forEach((checkbox) => {
+        const syncLicenseRow = () => checkbox.closest('[data-license-row]')?.classList.toggle('is-selected', checkbox.checked);
+        checkbox.addEventListener('change', syncLicenseRow);
+        syncLicenseRow();
+    });
+
+    const sleep = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+
+    const markAssignedLicenses = (skuIds) => {
+        (skuIds || []).forEach((skuId) => {
+            const row = Array.from(form.querySelectorAll('[data-license-row]')).find((item) => (item.dataset.skuId || '').toLowerCase() === String(skuId).toLowerCase());
+            if (!row) return;
+            row.classList.add('is-assigned');
+            const checkbox = row.querySelector('.license-checkbox');
+            if (checkbox) checkbox.disabled = true;
+            const state = row.querySelector('[data-license-state]');
+            if (state) state.innerHTML = '<span class="status-pill status-pill-success">Atribuída</span>';
+            const count = row.querySelector('[data-license-count]');
+            const available = Number(row.dataset.availableUnits || 0);
+            const enabled = Number(row.dataset.enabledUnits || 0);
+            if (count && enabled < 1000000 && available > 0) {
+                const nextAvailable = Math.max(0, available - 1);
+                row.dataset.availableUnits = String(nextAvailable);
+                count.innerHTML = `<b>${nextAvailable}</b> de ${enabled} licenças disponíveis`;
+            }
+        });
+    };
+
+    const applySelectedM365Licenses = async (request) => {
+        if (!m365LicenseUrl || !m365LicenseWritesEnabled || !request || !Array.isArray(request.selectedLicenseSkuIds) || request.selectedLicenseSkuIds.length === 0)
+            return true;
+
+        lastM365Request = request;
+        if (retryM365Button) retryM365Button.hidden = true;
+        const startedAt = Date.now();
+
+        while ((Date.now() - startedAt) / 1000 < m365SyncMaxWaitSeconds) {
+            try {
+                const result = await postJson(m365LicenseUrl, request);
+                if (result.pendingSynchronization) {
+                    const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+                    setStatus(m365ProvisionStatus, `Usuário criado no AD. Aguardando sincronização com o Entra (${elapsed}s/${m365SyncMaxWaitSeconds}s)... Nenhuma licença foi gravada ainda.`, 'warning');
+                    await sleep(Math.max(5, Number(result.retryAfterSeconds || m365SyncPollSeconds)) * 1000);
+                    continue;
+                }
+
+                if (!result.success) {
+                    setStatus(m365ProvisionStatus, result.message || 'Não foi possível concluir o Microsoft 365.', result.requiresManualReview ? 'error' : 'warning');
+                    if (retryM365Button && !result.requiresManualReview) retryM365Button.hidden = false;
+                    return false;
+                }
+
+                markAssignedLicenses(result.addedSkuIds || []);
+                setStatus(m365ProvisionStatus, result.message || 'Licenças Microsoft 365 atribuídas e confirmadas.', 'success');
+                lastM365Request = null;
+                return true;
+            } catch (error) {
+                setStatus(m365ProvisionStatus, `Falha ao chamar o Microsoft 365 (${error.message}). O AD já foi criado; revise antes de repetir.`, 'error');
+                if (retryM365Button) retryM365Button.hidden = false;
+                return false;
+            }
+        }
+
+        setStatus(m365ProvisionStatus, `Usuário criado no AD, mas não apareceu no Entra dentro de ${m365SyncMaxWaitSeconds}s. Nenhuma licença foi atribuída. Use Repetir atribuição M365 após a sincronização.`, 'warning');
+        if (retryM365Button) retryM365Button.hidden = false;
+        return false;
+    };
+
     ticketSource?.addEventListener('input', () => {
         syncTicket();
         invalidateValidation();
@@ -584,11 +668,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const original = button.innerHTML;
         button.disabled = true;
-        button.textContent = 'Validando no AD...';
+        button.textContent = 'Validando AD + M365...';
         try {
             const result = await postJson(validationUrl, buildRequest(false));
             if (!result.success) {
-                setStatus(validationStatus, result.message || 'Não foi possível validar o Active Directory.', 'error');
+                setStatus(validationStatus, result.message || 'Não foi possível concluir a pré-validação.', 'error');
                 return;
             }
 
@@ -599,7 +683,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.valid && result.preview) renderPreview(result.preview);
             updateCreateEligibility();
         } catch (error) {
-            setStatus(validationStatus, `Falha ao validar o Active Directory (${error.message}).`, 'error');
+            setStatus(validationStatus, `Falha na pré-validação (${error.message}).`, 'error');
         } finally {
             button.disabled = false;
             button.innerHTML = original;
@@ -610,17 +694,26 @@ document.addEventListener('DOMContentLoaded', () => {
         syncTicket();
         if (createButton.disabled || !lastValidationValid) return;
 
-        const message = 'CONFIRMA a criação do usuário piloto no Active Directory?\\n\\nO backend criará a conta inicialmente desabilitada, definirá atributos, senha e manager, validará por releitura e habilitará somente ao final. Nenhum grupo será gravado.';
+        const groups = selectedGroupDns();
+        const licenses = selectedLicenseNames();
+        const groupText = groups.length > 0 ? `\nGrupos selecionados: ${groups.length}` : '\nNenhum grupo selecionado.';
+        const licenseText = licenses.length > 0
+            ? `\nLicenças Microsoft 365: ${licenses.join(', ')}\nApós o AD, o sistema aguardará a sincronização com o Entra para atribuí-las.`
+            : '\nNenhuma licença Microsoft 365 selecionada.';
+        const message = `CONFIRMA a criação do usuário piloto no Active Directory?\n\nA conta será criada desabilitada, receberá atributos, senha, manager e somente memberships autorizadas, será relida e habilitada ao final.${groupText}${licenseText}`;
         if (!window.confirm(message)) return;
 
         clearStatus(createStatus);
+        clearStatus(m365ProvisionStatus);
         hidePassword();
+        if (retryM365Button) retryM365Button.hidden = true;
         const original = createButton.textContent;
         createButton.disabled = true;
         createButton.textContent = 'Criando usuário no AD...';
 
         try {
-            const result = await postJson(createUrl, buildRequest(true));
+            const creationRequest = buildRequest(true);
+            const result = await postJson(createUrl, creationRequest);
             lastValidationValid = false;
 
             if (!result.success) {
@@ -635,11 +728,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 passwordValue.textContent = result.temporaryPassword;
                 passwordPanel.hidden = false;
             }
+
+            if (creationRequest.selectedLicenseSkuIds.length > 0 && m365LicenseWritesEnabled) {
+                createButton.textContent = 'Aguardando Microsoft 365...';
+                await applySelectedM365Licenses({
+                    chamado: creationRequest.chamado,
+                    userPrincipalName: creationRequest.email,
+                    selectedLicenseSkuIds: creationRequest.selectedLicenseSkuIds,
+                    confirmacao: true
+                });
+            }
         } catch (error) {
             setStatus(createStatus, `Falha na chamada de criação (${error.message}). Interrompa o fluxo e revise o AD antes de tentar novamente.`, 'error');
         } finally {
             createButton.textContent = original;
             createButton.disabled = true;
+        }
+    });
+
+    retryM365Button?.addEventListener('click', async () => {
+        if (!lastM365Request) return;
+        retryM365Button.disabled = true;
+        try {
+            await applySelectedM365Licenses(lastM365Request);
+        } finally {
+            retryM365Button.disabled = false;
         }
     });
 

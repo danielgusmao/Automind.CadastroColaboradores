@@ -27,6 +27,7 @@ public sealed class AdUserResolution
     public bool Ambiguous { get; set; }
     public string? DisplayName { get; set; }
     public string? SamAccountName { get; set; }
+    public string? UserPrincipalName { get; set; }
     public string? DistinguishedName { get; set; }
     public int Matches { get; set; }
 }
@@ -60,6 +61,7 @@ public class AdProvisioningValidationRequest
     public string? PerfilUsuario { get; set; }
     public string? OuDistinguishedName { get; set; }
     public List<string> SelectedGroupDns { get; set; } = [];
+    public List<Guid> SelectedLicenseSkuIds { get; set; } = [];
 }
 
 public sealed class AdValidationCheck
@@ -89,6 +91,7 @@ public sealed class AdProvisioningPreview
     public string? ManagerDistinguishedName { get; set; }
     public string? OuDistinguishedName { get; set; }
     public List<string> Groups { get; set; } = [];
+    public List<string> Licenses { get; set; } = [];
 }
 
 public sealed class AdProvisioningValidationResponse

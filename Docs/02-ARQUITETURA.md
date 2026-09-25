@@ -105,3 +105,27 @@ Fluxo da v0.1.12:
 O Graph usa validacao TLS padrao do Windows/.NET. Nao existe `ServerCertificateValidationCallback` permissivo no codigo.
 
 `LicenseWritesEnabled=false` e nao ha endpoint de escrita M365 nesta versao, mesmo que as permissoes de escrita ja tenham sido validadas no tenant.
+
+
+## 25/09/2026 - arquitetura Microsoft Graph da v0.1.13
+
+A camada M365 passa de inventario somente leitura para escrita piloto controlada.
+
+Fluxo:
+
+`Novo.cshtml -> ValidarAd (AD + inventario Graph) -> CreateUserAsync AD -> JavaScript poll -> AplicarLicencasMicrosoft365 -> Graph user -> UsageLocation -> assignLicense -> readback/auditoria`
+
+Caracteristicas:
+- `LicenseWritesEnabled=true`;
+- selecao somente em SKU com `CanAssign=true`;
+- backend sempre consulta inventario fresco antes da escrita;
+- endpoint M365 exige operador autorizado e usuario AD dentro de `WriteAllowedOuDns`;
+- se o usuario ainda nao existir no Entra, retorna `PendingSynchronization` sem escrever;
+- navegador faz polling configuravel (`10s`, maximo `180s` nesta versao);
+- `UsageLocation` vazio recebe `BR`; valor nao vazio e diferente de `BR` bloqueia a automacao;
+- `assignLicense` adiciona somente SKUs ausentes;
+- rollback nunca remove licenca que ja existia antes da operacao;
+- cache do inventario e invalidado apos assign/rollback;
+- auditoria M365 usa `IProvisioningAuditService`.
+
+Nao ha daemon/fila/background worker na v0.1.13; o retry automatico existe enquanto a pagina permanece aberta.

@@ -1,3 +1,9 @@
+# Complemento 25/09/2026 - v0.1.13 / etapa M365 pos-AD
+
+O contrato AD abaixo permanece vigente. A v0.1.13 nao altera a ordem interna do writer AD. Somente depois de `CreateUserAsync` retornar sucesso, a UI inicia uma etapa separada de licenciamento Microsoft 365. Falha/timeout M365 nao executa rollback destrutivo do usuario AD criado. Detalhes em `Docs/07-MICROSOFT-365.md`.
+
+---
+
 # ESTADO VIGENTE - PILOTO AD CONCLUIDO EM 24/09/2026
 
 O objetivo deste documento foi atingido. A v0.1.10 concluiu o teste ponta a ponta com `I2609-0305` e `lucas.costa`, incluindo membership em `_CriaMovePastas`, readback, enable e auditoria. O teste negativo de allowlist tambem passou. Nao ampliar para grupos/OUs de producao sem nova aprovacao.

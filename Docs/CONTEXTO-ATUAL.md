@@ -1,6 +1,6 @@
 # CadColab - contexto atual para continuidade
 
-Versao: `0.1.12`  
+Versao: `0.1.13`  
 Data: 25/09/2026  
 Projeto: `Automind.CadastroColaboradores`
 
@@ -14,7 +14,10 @@ Projeto: `Automind.CadastroColaboradores`
 - `GroupWriteAllowedDns` contem somente `_CriaMovePastas` em `07.Outros`;
 - `Microsoft365.Enabled=true`;
 - `Microsoft365.LicenseInventoryEnabled=true`;
-- `Microsoft365.LicenseWritesEnabled=false`;
+- `Microsoft365.LicenseWritesEnabled=true`;
+- `Microsoft365.UsageLocation=BR`;
+- `SyncPollSeconds=10`;
+- `SyncMaxWaitSeconds=180`;
 - Teams, `proxyAddresses` e `pwdLastSet` continuam sem escrita.
 
 ## Active Directory - piloto concluido
@@ -28,7 +31,7 @@ Teste completo `I2609-0305`:
 
 Nao ampliar OU/grupos de producao sem nova decisao explicita.
 
-## Microsoft 365 / Entra / Graph - validado
+## Microsoft 365 / Entra / Graph
 
 App Registration:
 - nome `Automind.CadColab`;
@@ -45,7 +48,7 @@ Permissoes Application com Admin Consent:
 - `User.ReadUpdate.All`;
 - `LicenseAssignment.ReadWrite.All`.
 
-### Teste real de licenca concluido
+### Teste manual real concluido
 
 Usuario piloto `lucas.costa@automind.com.br`:
 - `UsageLocation` alterado de vazio para `BR`;
@@ -53,36 +56,65 @@ Usuario piloto `lucas.costa@automind.com.br`:
 - readback confirmou `Active`, sem erro e sem grupo de origem;
 - licenca removida em seguida;
 - estado final: `UsageLocation=BR`, 0 licencas;
-- tenant voltou a 149 Business Standard consumidas / 17 disponiveis.
+- tenant voltou a 149 Business Standard consumidas / 17 disponiveis naquele snapshot.
 
-## Implementacao v0.1.12
+### v0.1.12 validada no servidor
 
-A tela `Novo colaborador` passa a mostrar uma secao Microsoft 365 somente leitura com:
-- nome amigavel da licenca;
-- SKU tecnico;
-- quantidade disponivel e total no formato `17 de 166 licencas disponiveis`;
-- status `Disponivel`, `Sem vagas` ou `Suspensa`;
-- capacidade equivalente a ilimitada apresentada como ilimitada.
+O PDF de validacao de 25/09/2026 confirmou:
+- `Graph conectado`;
+- lista real com nome/SKU/quantidade;
+- Business Standard exibida como 17 de 166 disponiveis naquele momento;
+- estados Disponivel, Sem vagas e Suspensa;
+- escrita de licencas ainda bloqueada, como previsto para a v0.1.12.
 
-A fonte e `GET /v1.0/subscribedSkus` via App-only/certificado. Cache: 5 minutos.
+## Implementacao v0.1.13
 
-**Nao existe atribuicao/remocao de licenca no codigo da v0.1.12.** Os checkboxes aparecem desabilitados e `LicenseWritesEnabled=false`.
+Novo fluxo M365 integrado ao cadastro piloto:
+1. operador seleciona somente SKUs visualmente disponiveis;
+2. `Validar AD + M365` tambem revalida os SKUs no Graph;
+3. criacao AD ocorre pelo fluxo ja validado;
+4. apos sucesso AD, o navegador chama automaticamente o endpoint M365;
+5. enquanto o usuario nao existir no Entra, o endpoint retorna `PendingSynchronization` sem escrever licencas;
+6. a tela repete a consulta a cada 10s por ate 180s;
+7. quando o usuario aparece, o backend valida UPN exato e que ele pertence a `WriteAllowedOuDns`;
+8. se `UsageLocation` estiver vazio, define `BR`; se ja for outro pais, para e nao sobrescreve;
+9. revalida inventario/vagas;
+10. atribui somente SKUs ainda ausentes no usuario;
+11. readback confirma `assignedLicenses`/estado e tolera propagacao do Graph antes de declarar falha;
+12. auditoria registra `m365-license-start`, `m365-usage-location`, `m365-license-assign`, `m365-license-readback`, `m365-license-complete`;
+13. em falha apos atribuicao, tenta remover somente os SKUs adicionados nessa operacao e registra `m365-license-rollback`.
+
+A operacao e idempotente para licencas ja atribuidas: elas nao entram no conjunto de rollback.
+
+### Limite conhecido do piloto
+
+Nao existe fila/background job nesta versao. O polling ocorre enquanto a tela permanece aberta. Se o usuario nao sincronizar em 180s, nenhuma licenca e aplicada e o botao `Repetir atribuicao M365` fica disponivel na mesma tela.
+
+O Entra Cloud Sync corporativo identificado no ambiente trabalha por ciclos; a documentacao Microsoft informa que Cloud Sync provisiona mudancas aproximadamente a cada 2 minutos. Por isso o limite do piloto foi configurado em 180s.
 
 ## Proximo teste
 
-Depois do build/deploy da v0.1.12 no servidor `10.1.2.21`:
-1. abrir `Novo colaborador`;
-2. confirmar secao `04 - MICROSOFT 365`;
-3. confirmar `Graph conectado`;
-4. conferir os numeros com o Microsoft 365 Admin Center;
-5. confirmar que os checkboxes estao desabilitados;
-6. confirmar que importacao TOPdesk e fluxo AD continuam normais.
+Na v0.1.13:
+1. build local deve retornar 0 erros/0 warnings;
+2. publicar via branch `release`;
+3. usar NOVO usuario piloto em `07.Outros`;
+4. selecionar somente `_CriaMovePastas` se membership for necessaria;
+5. selecionar `Microsoft 365 Business Standard` (ou outro SKU com vaga);
+6. validar AD/M365;
+7. criar usuario;
+8. observar sincronizacao + atribuicao;
+9. conferir portal M365 e `ProvisioningAudit.jsonl`;
+10. parar no primeiro resultado inesperado.
 
-## Rollback rapido da v0.1.12
+## Rollback rapido da v0.1.13
 
-Definir um destes valores e publicar:
-- `Automind:Microsoft365:Enabled=false`; ou
-- `Automind:Microsoft365:LicenseInventoryEnabled=false`.
+Definir:
+
+`Automind:Microsoft365:LicenseWritesEnabled=false`
+
+e publicar. O inventario continua visivel, mas selecao/escrita ficam bloqueadas.
+
+Rollback de uma tentativa e automatico somente para licencas adicionadas pela propria tentativa. `UsageLocation=BR` nao e revertido para vazio.
 
 Rollback completo do Entra/certificado/ACE: `Docs/07-MICROSOFT-365.md`.
 

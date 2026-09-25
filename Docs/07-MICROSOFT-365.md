@@ -1,17 +1,19 @@
 # Microsoft 365 / Entra / Microsoft Graph
 
-## Estado vigente - 25/09/2026 - v0.1.12
+## Estado vigente - 25/09/2026 - v0.1.13
 
-A integracao Microsoft 365 foi validada no tenant real e a v0.1.12 passa a exibir no formulario de cadastro o inventario de licencas retornado por `GET /v1.0/subscribedSkus`.
+A integracao Microsoft 365 esta autenticada por App-only/certificado e teve leitura, `UsageLocation`, atribuicao e remocao de licenca validadas manualmente no tenant real.
 
-Nesta versao:
-- leitura do inventario M365: **habilitada**;
-- exibicao de licencas/quantidades na tela: **habilitada**;
-- selecao de licenca na tela: **desabilitada**;
-- atribuicao/remocao de licenca pela aplicacao: **nao implementada**;
-- `Automind:Microsoft365:LicenseWritesEnabled=false`.
+A v0.1.12 foi publicada e validada no servidor com inventario somente leitura. A v0.1.13 habilita escrita piloto controlada no fluxo normal do cadastro.
 
-A permissao de escrita no Graph foi concedida e testada administrativamente, mas o codigo desta versao nao possui endpoint/acao de atribuicao de licencas.
+Estado desta versao:
+- leitura de inventario: **habilitada**;
+- selecao de licenca: **habilitada somente para SKU disponivel**;
+- atribuicao direta de licenca: **habilitada no piloto**;
+- `LicenseWritesEnabled=true`;
+- `UsageLocation=BR` como valor esperado para novo colaborador;
+- polling Entra: 10 segundos, limite 180 segundos;
+- rollback por operacao: remove somente licencas adicionadas pela tentativa.
 
 ## Identidade App-only
 
@@ -22,20 +24,19 @@ App Registration:
 - Object ID: `1ed30afe-dfc7-45ea-bdd5-d6d17808091e`;
 - Directory (tenant) ID: `9ab05ca8-1779-410b-ae61-82dbd20810f3`.
 
-Autenticacao:
-- OAuth 2.0 `client_credentials`;
-- certificado em `LocalMachine\\My` no servidor `10.1.2.21`;
+Certificado:
+- Store: `LocalMachine\My` no servidor `10.1.2.21`;
 - Subject: `CN=Automind.CadColab.Graph`;
 - Thumbprint: `A38B594A4A2594A3D83B33B52FD7828935700C29`;
-- validade: ate `24/09/2028`;
+- validade ate `24/09/2028`;
 - chave privada nao exportavel;
-- certificado publico: `C:\\Automind.CadastroColaboradores\\Automind.CadColab.Graph.cer`.
+- certificado publico: `C:\Automind.CadastroColaboradores\Automind.CadColab.Graph.cer`.
 
-A gMSA `AUTOMIND\\gMSA_CadColab$` recebeu somente `Read, Synchronize` no arquivo da chave privada CNG:
+A gMSA `AUTOMIND\gMSA_CadColab$` possui somente `Read, Synchronize` no arquivo CNG:
 
-`C:\\ProgramData\\Microsoft\\Crypto\\Keys\\3f4b61607e15b0dae42c2006d96b04b8_54f5abd6-87df-4327-bf2f-02580f1eda0a`
+`C:\ProgramData\Microsoft\Crypto\Keys\3f4b61607e15b0dae42c2006d96b04b8_54f5abd6-87df-4327-bf2f-02580f1eda0a`
 
-Nao exportar a chave privada e nao criar client secret para esta integracao.
+Nao exportar a chave privada e nao criar client secret.
 
 ## Permissoes Microsoft Graph atuais
 
@@ -46,96 +47,151 @@ Application + Admin Consent:
 - `LicenseAssignment.ReadWrite.All`.
 
 Delegated existente:
-- `User.Read` - nao utilizado pelo fluxo App-only.
+- `User.Read` - nao utilizado no fluxo App-only.
 
-A v0.1.12 usa somente leitura de `subscribedSkus`. As permissoes de escrita foram concedidas para o teste controlado realizado em 25/09/2026, mas `LicenseWritesEnabled=false` e nenhum codigo de atribuicao de licenca existe nesta entrega.
+Permissoes minimas confirmadas na documentacao Microsoft:
+- `User.ReadUpdate.All` para update de propriedades comuns de usuario em Application;
+- `LicenseAssignment.ReadWrite.All` para `POST /users/{id|UPN}/assignLicense` em Application.
 
-## Validacoes realizadas
+## Validacoes reais anteriores
 
-### Consulta de SKUs
+### subscribedSkus
 
-`GET https://graph.microsoft.com/v1.0/subscribedSkus` autenticado por certificado retornou **20 SKUs**.
+`GET /v1.0/subscribedSkus` retornou 20 SKUs. Snapshot observado em 25/09/2026:
+- Business Standard: 166 habilitadas / 149 consumidas / 17 disponiveis;
+- Business Basic: 24 / 22 / 2;
+- Office 365 E3: 6 / 5 / 1;
+- Power BI Pro: 4 / 1 / 3;
+- Project Plan 3: 22 / 16 / 6.
 
-Snapshot relevante observado:
-- `O365_BUSINESS_PREMIUM` / Microsoft 365 Business Standard: 166 habilitadas, 149 consumidas, 17 disponiveis;
-- `O365_BUSINESS_ESSENTIALS` / Microsoft 365 Business Basic: 24 habilitadas, 22 consumidas, 2 disponiveis;
-- `ENTERPRISEPACK`: 6 habilitadas, 5 consumidas, 1 disponivel;
-- `POWER_BI_PRO`: 4 habilitadas, 1 consumida, 3 disponiveis;
-- `PROJECTPROFESSIONAL`: 22 habilitadas, 16 consumidas, 6 disponiveis.
+Esses numeros sao historicos. O sistema sempre deve usar o Graph atual.
 
-Os valores sao dinamicos; a tela deve sempre usar o Graph como fonte atual, nao estes numeros historicos.
+### Padrao da coorte
 
-### Coorte de referencia
+`Automation Systems Analyst + ENGENHARIA`, excluindo `07.Outros`:
+- 5 usuarios;
+- `O365_BUSINESS_PREMIUM`: 5/5, direta;
+- `FLOW_FREE`: 4/5;
+- `POWER_BI_STANDARD`: 1/5;
+- todos com `UsageLocation=BR`;
+- Business Standard sem `disabledPlans`.
 
-Para `Automation Systems Analyst + ENGENHARIA`, excluindo contas piloto em `07.Outros`, foram considerados 5 usuarios de referencia:
-- `O365_BUSINESS_PREMIUM`: 5/5, atribuicao direta;
-- `FLOW_FREE`: 4/5, atribuicao direta;
-- `POWER_BI_STANDARD`: 1/5, atribuicao direta.
+### Lucas Costa - teste controlado
 
-Todos os 5 usuarios de referencia possuem `UsageLocation=BR` e nenhum `disabledPlan` no Business Standard.
+`lucas.costa@automind.com.br`:
+1. iniciou sincronizado, `UsageLocation` vazio, 0 licencas;
+2. `UsageLocation=BR` aplicado via Graph e confirmado;
+3. Business Standard (`f245ecc8-75af-4f8e-b61f-27d8114de5f3`) atribuida diretamente;
+4. readback: `Active`, `None`, `assignedByGroup` vazio;
+5. portal mostrou 16/166 disponiveis durante a atribuicao;
+6. a mesma licenca foi removida;
+7. estado final: 0 licencas, `UsageLocation=BR`, inventario voltou a 17/166 naquele momento.
 
-### Usuario piloto Lucas Costa
+## v0.1.12 - inventario visual validado
 
-Usuario sincronizado:
-- `lucas.costa@automind.com.br`;
-- `onPremisesSyncEnabled=True`;
-- inicialmente `UsageLocation` vazio e 0 licencas.
+O formulario publicado exibiu corretamente:
+- `Graph conectado`;
+- nome amigavel;
+- SKU;
+- `<disponiveis> de <total> licencas disponiveis`;
+- estados `Disponivel`, `Sem vagas`, `Suspensa`;
+- checkboxes bloqueados, como previsto naquela versao.
 
-Teste controlado:
-1. `usageLocation` atualizado para `BR` via Graph e confirmado por releitura;
-2. Microsoft 365 Business Standard (`f245ecc8-75af-4f8e-b61f-27d8114de5f3`) atribuida diretamente;
-3. readback confirmou `state=Active`, `error=None`, `assignedByGroup` vazio;
-4. portal Microsoft 365 mostrou 16 de 166 disponiveis durante o teste;
-5. a mesma licenca foi removida via `assignLicense`;
-6. readback final confirmou `Licencas=0`, Business Standard ausente;
-7. inventario voltou para 149 consumidas e 17 disponiveis.
+## v0.1.13 - fluxo de escrita implementado
 
-Estado final do usuario piloto apos o rollback da licenca:
-- `UsageLocation=BR`;
-- 0 licencas;
-- nenhuma Business Standard atribuida.
+### Pre-validacao
 
-## Problema de PowerShell identificado
+`SelectedLicenseSkuIds` e enviado junto com a pre-validacao. O backend:
+1. remove GUID vazio/duplicado;
+2. consulta inventario fresco;
+3. confirma que o SKU existe;
+4. bloqueia `Suspended`;
+5. bloqueia SKU sem vaga, salvo capacidade tratada como ilimitada;
+6. adiciona o check `Licencas Microsoft 365 validas`.
 
-Uma sessao do Windows PowerShell possuia `ServerCertificateValidationCallback` customizado, causando:
+### Criacao + sincronizacao
 
-`There is no Runspace available to run scripts in this thread.`
+A criacao AD continua independente e segue o writer ja validado. Depois que `CreateUserAsync` retorna sucesso, o navegador chama `AplicarLicencasMicrosoft365`.
 
-Para os testes manuais, o callback foi removido apenas na sessao e TLS 1.2 foi usado. Isso foi temporario.
+O endpoint M365 exige:
+- confirmacao explicita;
+- `LicenseWritesEnabled=true`;
+- operador autorizado;
+- UPN `@automind.com.br`;
+- usuario localizado de forma unica no AD;
+- DN do usuario dentro de `WriteAllowedOuDns`.
 
-**A aplicacao nao implementa bypass de validacao TLS.** O servico .NET usa validacao TLS/certificado padrao do sistema operacional.
+Se o usuario ainda nao existe no Entra, retorna `PendingSynchronization=true` e **nao altera UsageLocation nem licencas**.
 
-## Implementacao v0.1.12 - inventario visual
+A pagina repete a tentativa a cada `SyncPollSeconds=10` por ate `SyncMaxWaitSeconds=180`.
 
-Novos componentes:
-- `Models/Microsoft365LicenseModels.cs`;
-- `Services/IMicrosoft365LicenseService.cs`;
-- `Services/Microsoft365LicenseService.cs`.
+Referencia Microsoft: Entra Cloud Sync usa modelo agendado e provisiona mudancas aproximadamente a cada 2 minutos (`Cloud sync deep dive - how it works`).
 
-Fluxo:
-1. o App Pool executa como `AUTOMIND\\gMSA_CadColab$`;
-2. a aplicacao localiza o certificado pelo thumbprint em `LocalMachine\\My`;
-3. gera client assertion RSA SHA-256;
-4. solicita token App-only ao Entra;
-5. consulta `GET /v1.0/subscribedSkus`;
-6. calcula `disponiveis = enabled - consumed`;
-7. exibe nome, SKU, quantidade e status no formulario;
-8. cache local de 5 minutos reduz chamadas ao Graph.
+### UsageLocation
 
-A tela apresenta quantidades no formato do Microsoft 365 Admin Center, por exemplo:
+Quando o usuario aparece no Entra:
+- vazio -> PATCH para `BR` + readback;
+- `BR` -> continua sem nova escrita;
+- outro valor -> para e exige revisao; nao sobrescreve automaticamente.
 
-`Microsoft 365 Business Standard`  
-`17 de 166 licencas disponiveis`
+`UsageLocation=BR` nao e revertido para vazio em rollback de licenca.
 
-SKUs com capacidade equivalente a ilimitada sao apresentados como `Licencas ilimitadas disponiveis`. Assinaturas suspensas ficam identificadas como suspensas.
+### assignLicense
 
-## Configuracao v0.1.12
+Antes da escrita, o inventario e consultado novamente.
+
+O servico calcula:
+- licencas ja existentes;
+- licencas realmente novas (`toAdd`).
+
+Somente `toAdd` e enviado em `addLicenses`, com `disabledPlans=[]`.
+
+Depois:
+- cache do inventario e invalidado;
+- readback confirma os SKUs;
+- estado de licenca com erro bloqueia sucesso;
+- UI marca licencas como atribuidas e ajusta a quantidade exibida localmente.
+
+### Rollback automatico da operacao
+
+Se houver falha depois que `assignLicense` foi tentado:
+1. o sistema envia `removeLicenses` **somente para `toAdd`**;
+2. rele o usuario;
+3. confirma que os SKUs adicionados pela tentativa foram removidos;
+4. se nao confirmar, `RequiresManualReview=true`.
+
+Licencas que ja existiam antes da tentativa nunca sao removidas pelo rollback.
+
+### Auditoria M365
+
+Mesmo arquivo:
+
+`C:\Automind.CadastroColaboradores\Logs\ProvisioningAudit.jsonl`
+
+Acoes:
+- `m365-license-start`;
+- `m365-usage-location` quando aplicavel;
+- `m365-license-assign`;
+- `m365-license-readback`;
+- `m365-license-rollback` quando necessario;
+- `m365-license-complete`.
+
+Campos novos suportados no JSONL:
+- `UserPrincipalName`;
+- `Licenses`.
+
+Senha nunca e registrada.
+
+## Configuracao v0.1.13
 
 ```json
 "Microsoft365": {
   "Enabled": true,
   "LicenseInventoryEnabled": true,
-  "LicenseWritesEnabled": false,
+  "LicenseWritesEnabled": true,
+  "UsageLocation": "BR",
+  "SyncPollSeconds": 10,
+  "SyncMaxWaitSeconds": 180,
   "TenantId": "9ab05ca8-1779-410b-ae61-82dbd20810f3",
   "ClientId": "3558d29a-1098-467c-b4e3-aeaf0afeaaf4",
   "CertificateThumbprint": "A38B594A4A2594A3D83B33B52FD7828935700C29",
@@ -143,78 +199,87 @@ SKUs com capacidade equivalente a ilimitada sao apresentados como `Licencas ilim
 }
 ```
 
-Nenhum segredo e armazenado no `appsettings.json`.
+## Teste apos deploy v0.1.13
 
-## Teste esperado apos deploy da v0.1.12
+Usar NOVO usuario piloto em `07.Outros`.
 
-No servidor `10.1.2.21`:
-1. publicar normalmente pelo Azure DevOps;
-2. abrir `http://cadastro.automind.com.br/`;
-3. acessar `Novo colaborador`;
-4. localizar a secao `04 - MICROSOFT 365`;
-5. confirmar `Graph conectado`;
-6. confirmar que `Microsoft 365 Business Standard` mostra **17 de 166 licencas disponiveis** enquanto o tenant permanecer no mesmo estado;
-7. confirmar que nenhum checkbox de licenca pode ser marcado;
-8. confirmar que a pre-validacao/criacao AD continua independente da consulta M365.
+1. confirmar inventario Graph;
+2. confirmar checkbox habilitado apenas em SKU disponivel;
+3. selecionar Business Standard;
+4. `Validar AD + M365` -> check M365 verde;
+5. criar usuario;
+6. observar status de espera do Entra;
+7. confirmar atribuicao M365;
+8. conferir portal: usuario licenciado e quantidade reduzida em 1;
+9. conferir `UsageLocation=BR`;
+10. conferir auditoria `m365-license-*`;
+11. nao excluir usuario automaticamente depois do teste; seguir politica de contencao/desabilitacao antes de qualquer exclusao.
 
-Se a lista falhar, o formulario continua carregando e mostra erro somente na secao Microsoft 365.
+## Rollback
 
-# Rollback
+### Contencao funcional mais simples
 
-## Rollback da funcionalidade v0.1.12
+Definir:
 
-Forma mais simples e sem alterar Entra:
+`Automind:Microsoft365:LicenseWritesEnabled=false`
 
-`Automind:Microsoft365:Enabled=false`
+Depois publicar. Resultado:
+- inventario continua visivel;
+- checkboxes ficam desabilitados;
+- endpoint recusa escrita.
 
-ou:
+Para desligar tambem leitura:
+- `Enabled=false`; ou
+- `LicenseInventoryEnabled=false`.
 
-`Automind:Microsoft365:LicenseInventoryEnabled=false`
+### Rollback de uma tentativa de licenciamento
 
-Depois publicar a configuracao. Efeito: o formulario deixa de consultar/exibir inventario M365; AD permanece inalterado.
+O servico ja tenta remover somente os SKUs que adicionou. Se `RequiresManualReview=true`, parar e conferir `assignedLicenses` antes de qualquer nova acao.
 
-## Contencao imediata da autenticacao Graph
+Nunca remover em massa todas as licencas do usuario para desfazer uma tentativa.
 
-No Entra, remover somente o certificado com thumbprint:
+`UsageLocation=BR` permanece.
+
+### Contencao da autenticacao Graph
+
+No Entra, remover somente o certificado de thumbprint:
 
 `A38B594A4A2594A3D83B33B52FD7828935700C29`
 
-Isso impede novos tokens App-only sem alterar usuarios/licencas.
+Novos tokens App-only deixam de funcionar.
 
-## Rollback de permissoes Graph
+### Rollback de permissoes Graph
 
-Remover/revogar individualmente, validando entre etapas:
-- `LicenseAssignment.ReadWrite.All`;
-- `User.ReadUpdate.All`;
-- `User.Read.All`;
-- `LicenseAssignment.Read.All`.
+Revogar/remover individualmente, uma por vez:
+1. `LicenseAssignment.ReadWrite.All`;
+2. `User.ReadUpdate.All`;
+3. `User.Read.All`;
+4. `LicenseAssignment.Read.All`.
 
-Nao remover permissoes de outros aplicativos.
+Validar entre cada etapa. Nao alterar permissoes de outros apps.
 
-## Rollback da ACE da chave privada
+### Rollback da ACE da chave privada
 
-No servidor `10.1.2.21`, remover somente a ACE criada para a gMSA:
+Servidor `10.1.2.21`:
 
 ```powershell
 $key="C:\ProgramData\Microsoft\Crypto\Keys\3f4b61607e15b0dae42c2006d96b04b8_54f5abd6-87df-4327-bf2f-02580f1eda0a";icacls $key /remove:g 'AUTOMIND\gMSA_CadColab$'
 ```
 
-Validar que `SYSTEM` e `BUILTIN\\Administrators` permanecem intactos.
+Remover somente a ACE do CadColab.
 
-## Rollback do certificado local
+### Rollback do certificado local
 
-Somente apos remover/revogar o uso do certificado no Entra:
+Somente apos conter o uso cloud:
 
 ```powershell
 Remove-Item "Cert:\LocalMachine\My\A38B594A4A2594A3D83B33B52FD7828935700C29"
 ```
 
-Remover o `.cer` publico local e opcional depois da validacao.
+### Rollback integral da App Registration
 
-## Rollback integral da App Registration
+Ultimo recurso: excluir somente `Automind.CadColab`, conferindo antes o Client ID `3558d29a-1098-467c-b4e3-aeaf0afeaaf4`.
 
-Ultimo recurso: excluir somente `Automind.CadColab` no tenant. Antes disso registrar IDs, permissoes e certificado. Essa acao remove a identidade criada para esta integracao e deve ser tratada como alteracao real separada.
+## Regra
 
-## Regra de rollback
-
-Toda reversao deve ser executada uma alteracao por vez, com validacao entre etapas. Nao restaurar configuracoes/ACLs inteiras de forma cega e nao alterar usuarios/licencas de producao para desfazer a integracao.
+Toda reversao e toda ampliacao de escopo devem continuar uma alteracao por vez, com validacao entre etapas. Nao restaurar ACL inteira e nao alterar licencas nao criadas pela operacao corrente.

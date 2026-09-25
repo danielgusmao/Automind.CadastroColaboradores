@@ -28,13 +28,17 @@ Validado tecnicamente:
 - atualizacao controlada de `UsageLocation`;
 - atribuicao e remocao direta de Microsoft 365 Business Standard em usuario piloto.
 
-Escopo da v0.1.12:
+Escopo da v0.1.13:
 - exibir inventario de licencas no formulario;
 - mostrar total, consumido/disponivel e status;
-- manter selecao/atribuicao de licencas desabilitada no sistema.
+- permitir selecionar somente SKUs disponiveis;
+- revalidar licencas no backend;
+- apos criacao AD, aguardar o usuario no Entra e aplicar `UsageLocation=BR` quando vazio;
+- atribuir diretamente somente as licencas selecionadas;
+- readback e auditoria;
+- rollback somente dos SKUs adicionados pela operacao.
 
 ## Ainda fora da escrita da aplicacao
-- atribuicao/remocao M365 pelo fluxo do CadColab;
 - `proxyAddresses`;
 - `pwdLastSet`;
 - Teams;

@@ -71,9 +71,11 @@ public sealed class ProvisioningAuditEntry
     public string Action { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string? DistinguishedName { get; set; }
+    public string? UserPrincipalName { get; set; }
     public string? OuDistinguishedName { get; set; }
     public List<string> Attributes { get; set; } = [];
     public List<string> Groups { get; set; } = [];
+    public List<string> Licenses { get; set; } = [];
     public string? ErrorType { get; set; }
     public int? ErrorCode { get; set; }
 }

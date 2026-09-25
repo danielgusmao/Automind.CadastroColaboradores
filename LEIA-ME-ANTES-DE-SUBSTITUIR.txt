@@ -1,19 +1,21 @@
-CADCOLAB v0.1.12 - PACOTE COMPLETO
+CADCOLAB v0.1.13 - PACOTE COMPLETO
 
-Objetivo desta atualizacao:
-- exibir no formulario Novo colaborador a lista real de licencas Microsoft 365;
-- mostrar quantidade no formato do Admin Center, ex.: 17 de 166 licencas disponiveis;
-- manter atribuicao/remocao de licencas bloqueada no sistema.
+OBJETIVO DESTA ATUALIZACAO
+- manter o inventario real Microsoft 365 validado na v0.1.12;
+- habilitar selecao somente de licencas disponiveis;
+- integrar atribuicao de licencas ao fluxo de criacao piloto;
+- aplicar UsageLocation=BR quando o usuario sincronizado ainda estiver sem pais;
+- confirmar licencas por readback e executar rollback somente do que a operacao adicionou.
 
-ARQUIVOS NOVOS PRINCIPAIS
+ALTERACOES PRINCIPAIS
 - Models\Microsoft365LicenseModels.cs
 - Services\IMicrosoft365LicenseService.cs
 - Services\Microsoft365LicenseService.cs
-
-ARQUIVOS ALTERADOS PRINCIPAIS
-- Program.cs
 - Controllers\ColaboradoresController.cs
+- Models\AdDirectoryModels.cs
+- Models\AdProvisioningWriteModels.cs
 - Views\Colaboradores\Novo.cshtml
+- wwwroot\js\site.js
 - wwwroot\css\automind.css
 - appsettings.json
 - VERSION.txt
@@ -22,17 +24,32 @@ ARQUIVOS ALTERADOS PRINCIPAIS
 - Docs\CONTEXTO-ATUAL.md
 - Docs\07-MICROSOFT-365.md
 
-PRE-REQUISITO DO SERVIDOR 10.1.2.21
-O certificado ja validado precisa permanecer em LocalMachine\My:
-Thumbprint: A38B594A4A2594A3D83B33B52FD7828935700C29
-A gMSA AUTOMIND\gMSA_CadColab$ precisa continuar com leitura na chave privada.
+PRE-REQUISITOS DO SERVIDOR 10.1.2.21
+- certificado em LocalMachine\My:
+  A38B594A4A2594A3D83B33B52FD7828935700C29
+- gMSA AUTOMIND\gMSA_CadColab$ com leitura na chave privada;
+- App Registration Automind.CadColab com Admin Consent para:
+  LicenseAssignment.Read.All
+  User.Read.All
+  User.ReadUpdate.All
+  LicenseAssignment.ReadWrite.All
 
-SEGURANCA DESTA VERSAO
+CONFIGURACAO DESTA VERSAO
 - Microsoft365.Enabled=true
 - LicenseInventoryEnabled=true
-- LicenseWritesEnabled=false
-- nenhum client secret
-- nenhum endpoint de escrita de licenca implementado
+- LicenseWritesEnabled=true
+- UsageLocation=BR
+- SyncPollSeconds=10
+- SyncMaxWaitSeconds=180
+
+TRAVAS DE SEGURANCA
+- somente operador autorizado pela aplicacao;
+- endpoint M365 valida que o usuario existe no AD e pertence a WriteAllowedOuDns;
+- SKU precisa existir no inventario atual, nao estar suspenso e ter vaga (ou capacidade ilimitada);
+- o backend revalida a selecao antes da escrita;
+- em falha apos assignLicense, remove somente os SKUs que nao existiam antes da operacao;
+- UsageLocation=BR, uma vez aplicado, nao e limpo automaticamente;
+- nenhuma chave privada/client secret no pacote.
 
 VALIDACAO LOCAL ANTES DO PUSH
 Na maquina do Visual Studio:
@@ -41,16 +58,27 @@ git branch --show-current;dotnet build -c Release;git status --short
 Esperado: branch release e build sem erros/warnings.
 
 PUBLICACAO APOS BUILD APROVADO
-git add .;git commit -m "CadColab v0.1.12 - inventario Microsoft 365";git push origin release;git push azure release
+git add .;git commit -m "feat: habilita atribuicao M365 controlada v0.1.13";git push origin release;git push azure release
 
 TESTE APOS DEPLOY
 1. Abrir Novo colaborador.
-2. Confirmar secao 04 - MICROSOFT 365.
-3. Confirmar Graph conectado.
-4. Comparar quantidades com o Admin Center.
-5. Confirmar checkboxes de licenca desabilitados.
-6. Confirmar fluxo TOPdesk/AD normal.
+2. Confirmar Graph conectado e quantidades.
+3. Confirmar que Disponivel pode ser marcado e Sem vagas/Suspensa nao podem.
+4. Selecionar Microsoft 365 Business Standard para um NOVO usuario piloto.
+5. Validar AD + M365 e confirmar o novo check de licencas M365.
+6. Criar o usuario.
+7. Aguardar sincronizacao Entra (poll 10s, limite 180s).
+8. Confirmar UsageLocation=BR e licenca atribuida.
+9. Confirmar auditoria m365-license-* no JSONL.
+10. Se passar de 180s, usar Repetir atribuicao M365 depois que o usuario aparecer no Entra.
 
-ROLLBACK FUNCIONAL
-Alterar Automind:Microsoft365:Enabled=false (ou LicenseInventoryEnabled=false) e publicar.
-Rollback completo do Graph/Entra/certificado: Docs\07-MICROSOFT-365.md.
+ROLLBACK FUNCIONAL RAPIDO
+Definir Automind:Microsoft365:LicenseWritesEnabled=false e publicar.
+Isso mantem o inventario visivel e volta a bloquear selecao/escrita M365.
+
+ROLLBACK DE UMA OPERACAO
+O codigo tenta remover automaticamente apenas os SKUs adicionados pela tentativa.
+Nao apagar outras licencas do usuario.
+UsageLocation=BR permanece.
+
+Rollback completo Graph/Entra/certificado: Docs\07-MICROSOFT-365.md.

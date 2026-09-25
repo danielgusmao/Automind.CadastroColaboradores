@@ -1,3 +1,21 @@
+# Atualizacao corrente - v0.1.13
+
+Validacao antes do commit:
+
+```powershell
+git branch --show-current;dotnet build -c Release;git status --short
+```
+
+Commit/push apos build aprovado:
+
+```powershell
+git add .;git commit -m "feat: habilita atribuicao M365 controlada v0.1.13";git push origin release;git push azure release
+```
+
+Nao criar tag automaticamente.
+
+---
+
 # Fluxo Git e publicação
 
 Decisão aprovada em 22/09/2026.
